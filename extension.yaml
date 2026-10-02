@@ -1,0 +1,153 @@
+# The Kryptos extension manifest. The registry stores this verbatim and the
+# control plane renders the extension detail page from it, so everything here is
+# a promise to a customer rather than internal documentation.
+contract_version: "1.0"
+
+name: pii-protection
+display_name: PII Protection
+description: >-
+  Finds personal information in text and removes it before it reaches a model,
+  a tool or a log. Regex proposes candidate spans and a fine-tuned LAYA
+  classifier decides, in context, which of them are personal. No LLM is called.
+version: 0.1.0
+category: data-protection
+status: beta
+publisher: kryptos
+
+capabilities:
+  - detect
+  - redact
+  - mask
+  - tokenize
+  - block
+  - audit
+
+operations:
+  - detect
+  - redact
+  - mask
+  - tokenize
+  - block
+  - audit
+
+execution_modes:
+  - hosted_api
+  - sdk
+  - local
+
+integrations:
+  - rest_api
+  - python_sdk
+  - mcp
+
+hosted_supported: true
+local_supported: true
+hybrid_supported: false
+
+configuration_schema:
+  detector_mode:
+    type: string
+    enum: [hybrid, regex]
+    description: >-
+      hybrid runs the fine-tuned classifier over regex candidates. regex keeps
+      only self-evident shapes (API keys, email addresses) and has materially
+      lower recall; it exists for deployments that cannot host the checkpoint.
+  action:
+    type: string
+    enum: [detect, redact, mask, tokenize, block, audit]
+    description: What to do when the detect operation finds personal information.
+  threshold:
+    type: number
+    minimum: 0
+    maximum: 1
+    description: >-
+      Classifier probability at or above which a span is personal. 0.5 is the
+      value the checkpoint was evaluated at; moving it invalidates the reported
+      F1 until it is re-measured.
+  min_confidence:
+    type: number
+    minimum: 0
+    maximum: 1
+    description: Drop findings below this confidence before any action is taken.
+
+default_config:
+  detector_mode: hybrid
+  action: redact
+  threshold: 0.5
+  min_confidence: 0.0
+
+input_schema:
+  content:
+    type: string
+    required: true
+    description: The text to examine. Never stored.
+
+output_schema:
+  decision:
+    type: string
+    enum: [allow, log, redact, mask, tokenize, block]
+  findings:
+    type: array
+    description: >-
+      One entry per detected span, carrying type, offsets and confidence. The
+      matched text is deliberately absent so findings are safe to audit.
+  transformed_content:
+    type: string
+    description: Present only when the action rewrote the text.
+
+policy_schema:
+  reason_codes:
+    type: array
+    description: >-
+      PII_<TYPE> per detected category, plus PII_PRESENT_BLOCKED when the block
+      operation stopped a request. Policies match on these.
+
+failure_policy:
+  # A read that cannot be scanned is alerted on; a write is stopped. An
+  # unavailable PII filter must not become a silent hole on the write path.
+  read_only: alert
+  sensitive_write: block
+
+runtime: python
+health_endpoint: /health
+timeout_seconds: 10.0
+
+scopes:
+  - pii:detect
+  - pii:redact
+  - pii:mask
+  - pii:tokenize
+  - pii:block
+  - pii:audit
+
+privacy:
+  hosted: >-
+    Text is sent to the Kryptos-hosted extension runtime, held in memory for the
+    duration of the request, and not written to disk or logs. Findings carry
+    offsets and types, never the matched text.
+  local: >-
+    The checkpoint and the detector run inside your environment. No text leaves
+    it. Only the decision and a content hash are reported to the control plane.
+  tokenization: >-
+    Token-to-value mappings are returned to the caller and are not retained by
+    the hosted service. In local mode they never leave your environment.
+
+performance:
+  detector: regex candidate proposal plus one classifier pass per candidate
+  typical_latency_ms: 120
+  notes: >-
+    Latency scales with the number of candidate spans, not with text length.
+    The checkpoint is ~1.6 GB and is loaded once per process at startup.
+
+documentation:
+  overview: README.md
+  api: docs/api.md
+  sdk: sdk/python/README.md
+  mcp: integrations/mcp/README.md
+
+changelog:
+  - version: 0.1.0
+    date: "2026-10-02"
+    notes: >-
+      First release as a platform extension: hosted API, Python SDK, local
+      runtime and MCP server over the fine-tuned LAYA detector.

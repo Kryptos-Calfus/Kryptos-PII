@@ -1,0 +1,1215 @@
+[
+  {
+    "source": "data.json #1",
+    "text": "Jennifer Lopez-Garcia called from (415) 555-0132 about order #88213. Her SSN is 536-22-8841 and she lives at 1600 Pennsylvania Avenue, Washington DC 20500.",
+    "pii": [
+      "Jennifer Lopez-Garcia",
+      "(415) 555-0132",
+      "536-22-8841",
+      "1600 Pennsylvania Avenue",
+      "20500"
+    ],
+    "keep": [
+      "order #88213"
+    ]
+  },
+  {
+    "source": "data.json #3",
+    "text": "hey its vikram here, my num is 9812345678 and mail is vik.rocks99@yahoo.co.in. u can drop the parcel at flat 3b, sunshine apartments, indiranagar",
+    "pii": [
+      "vikram",
+      "9812345678",
+      "vik.rocks99@yahoo.co.in",
+      "flat 3b, sunshine apartments"
+    ],
+    "keep": [
+      "parcel"
+    ]
+  },
+  {
+    "source": "data.json #5",
+    "text": "Satya Nadella announced the new Azure region in Pune. Microsoft's headquarters are in Redmond.",
+    "pii": [],
+    "keep": [
+      "Azure",
+      "Microsoft"
+    ]
+  },
+  {
+    "source": "data.json #7",
+    "text": "PAN ABCPK1234F, card 4111 1111 1111 1111 exp 09/28, IFSC HDFC0001234, account 50100234567890. Login from 203.0.113.45.",
+    "pii": [
+      "ABCPK1234F",
+      "4111 1111 1111 1111",
+      "50100234567890",
+      "203.0.113.45"
+    ],
+    "keep": [
+      "IFSC"
+    ]
+  },
+  {
+    "source": "data.json #9",
+    "text": "Mera naam Sunita Devi hai, mera phone 9123456780 hai aur main Lucknow mein rehti hoon. Aadhaar 4567 8912 3456.",
+    "pii": [
+      "Sunita Devi",
+      "9123456780",
+      "4567 8912 3456"
+    ],
+    "keep": [
+      "Mera naam",
+      "rehti hoon"
+    ]
+  },
+  {
+    "source": "data.json #11",
+    "text": "My full name is Daniel Morgan. My email address is daniel.morgan@example.com and my phone number is +1 202-555-0187.",
+    "pii": [
+      "Daniel Morgan",
+      "daniel.morgan@example.com",
+      "202-555-0187"
+    ],
+    "keep": [
+      "My email address is"
+    ]
+  },
+  {
+    "source": "data.json #13",
+    "text": "Employee ID EMP-783421 belongs to Neha Reddy. Her corporate email is neha.reddy@company.com.",
+    "pii": [
+      "EMP-783421",
+      "Neha Reddy",
+      "neha.reddy@company.com"
+    ],
+    "keep": [
+      "corporate email"
+    ]
+  },
+  {
+    "source": "data.json #15",
+    "text": "John's driver's license number is D1234567 and his passport number is P123456789.",
+    "pii": [
+      "John",
+      "D1234567",
+      "P123456789"
+    ],
+    "keep": [
+      "driver's license number"
+    ]
+  },
+  {
+    "source": "data.json #17",
+    "text": "Account holder: Emily Carter. Checking account: 1234567890. Routing number: 021000021.",
+    "pii": [
+      "Emily Carter",
+      "1234567890"
+    ],
+    "keep": [
+      "Checking account"
+    ]
+  },
+  {
+    "source": "data.json #19",
+    "text": "My Aadhaar is 2345 6789 0123 and my PAN is BCDPK5678L.",
+    "pii": [
+      "2345 6789 0123",
+      "BCDPK5678L"
+    ],
+    "keep": [
+      "My Aadhaar is"
+    ]
+  },
+  {
+    "source": "data.json #21",
+    "text": "Login username is rahul.s and password is MySecretPassword123. Please reset the account after login.",
+    "pii": [
+      "rahul.s ",
+      "MySecretPassword123"
+    ],
+    "keep": [
+      "reset the account"
+    ]
+  },
+  {
+    "source": "data.json #23",
+    "text": "My home address is 12 Park Street, Kolkata, West Bengal 700016. Please deliver the package there.",
+    "pii": [
+      "12 Park Street",
+      "700016"
+    ],
+    "keep": [
+      "deliver the package"
+    ]
+  },
+  {
+    "source": "data.json #25",
+    "text": "DOB: 17/08/1992. Full name: Ananya Krishnan. Passport: N12345678. Nationality: Indian.",
+    "pii": [
+      "17/08/1992",
+      "Ananya Krishnan",
+      "N12345678"
+    ],
+    "keep": [
+      "Nationality"
+    ]
+  },
+  {
+    "source": "data.json #27",
+    "text": "Insurance member ID MBR-7839201 and group number GRP-44129 are associated with policy POL-884213.",
+    "pii": [
+      "MBR-7839201",
+      "POL-884213"
+    ],
+    "keep": [
+      "Insurance member ID"
+    ]
+  },
+  {
+    "source": "data.json #29",
+    "text": "Debit card ending 9087 was used for the transaction. Billing address: 88 Lake View Road, Hyderabad, Telangana 500081.",
+    "pii": [
+      "ending 9087",
+      "88 Lake View Road",
+      "500081"
+    ],
+    "keep": [
+      "transaction"
+    ]
+  },
+  {
+    "source": "data.json #31",
+    "text": "My UPI ID is rahul.sharma@upi. Please refund ₹2,500 to this account.",
+    "pii": [
+      "rahul.sharma@upi"
+    ],
+    "keep": [
+      "₹2,500"
+    ]
+  },
+  {
+    "source": "data.json #33",
+    "text": "Passport holder: Michael Brown. Passport number: X12345678. Date of birth: 21 September 1988.",
+    "pii": [
+      "Michael Brown",
+      "X12345678",
+      "21 September 1988"
+    ],
+    "keep": [
+      "Passport holder"
+    ]
+  },
+  {
+    "source": "data.json #35",
+    "text": "The vehicle belongs to Suresh Menon. Registration number KL07CD5678 and VIN 1HGCM82633A123456.",
+    "pii": [
+      "Suresh Menon",
+      "KL07CD5678",
+      "1HGCM82633A123456"
+    ],
+    "keep": [
+      "The vehicle belongs to"
+    ]
+  },
+  {
+    "source": "data.json #37",
+    "text": "Medical record: Patient Lisa Thompson, DOB 04/09/1979, MRN 783291. Medication: metformin 500mg.",
+    "pii": [
+      "Lisa Thompson",
+      "04/09/1979",
+      "783291"
+    ],
+    "keep": [
+      "metformin 500mg"
+    ]
+  },
+  {
+    "source": "data.json #39",
+    "text": "Username: admin_sathvik. Temporary password: TempPass!2026. Recovery email: recovery@example.com.",
+    "pii": [
+      "admin_sathvik",
+      "TempPass!2026",
+      "recovery@example.com"
+    ],
+    "keep": [
+      "Temporary password"
+    ]
+  },
+  {
+    "source": "data.json #41",
+    "text": "Server login came from 198.51.100.42 using user account deploy-bot@example.com.",
+    "pii": [
+      "198.51.100.42",
+      "deploy-bot@example.com"
+    ],
+    "keep": [
+      "Server login"
+    ]
+  },
+  {
+    "source": "data.json #43",
+    "text": "Name: Olivia Anderson. Email: olivia.anderson@example.net. Phone: +1 415-555-0199. DOB: 1990-06-12.",
+    "pii": [
+      "Olivia Anderson",
+      "olivia.anderson@example.net",
+      "415-555-0199",
+      "1990-06-12"
+    ],
+    "keep": [
+      "Email:"
+    ]
+  },
+  {
+    "source": "data.json #45",
+    "text": "Customer support received a request from Mohammed Ali at +971 50 123 4567. Email: mohammed.ali@example.ae.",
+    "pii": [
+      "Mohammed Ali",
+      "50 123 4567",
+      "mohammed.ali@example.ae"
+    ],
+    "keep": [
+      "Customer support"
+    ]
+  },
+  {
+    "source": "data.json #47",
+    "text": "प्रिय टीम, मेरा नाम कविता शर्मा है। मेरा फोन नंबर 9876501234 है और मेरा ईमेल kavita.sharma@example.com है।",
+    "pii": [
+      "कविता शर्मा",
+      "9876501234",
+      "kavita.sharma@example.com"
+    ],
+    "keep": [
+      "प्रिय टीम"
+    ]
+  },
+  {
+    "source": "data.json #49",
+    "text": "Customer: Wei Chen. Email: wei.chen@example.cn. Phone: +86 138 0013 8000. Passport: E12345678.",
+    "pii": [
+      "Wei Chen",
+      "wei.chen@example.cn",
+      "138 0013 8000",
+      "E12345678"
+    ],
+    "keep": [
+      "Customer:"
+    ]
+  },
+  {
+    "source": "data.json #51",
+    "text": "The report contains no personal information. Revenue was $4.8M and uptime was 99.99%.",
+    "pii": [],
+    "keep": [
+      "$4.8M",
+      "99.99%",
+      "no personal information"
+    ]
+  },
+  {
+    "source": "data.json #53",
+    "text": "The database contains 12,482 records across 31 tables. Backup completed at 02:45 UTC.",
+    "pii": [],
+    "keep": [
+      "12,482",
+      "02:45 UTC",
+      "31 tables"
+    ]
+  },
+  {
+    "source": "data.json #55",
+    "text": "Meeting room 402 is reserved from 3:00 PM to 4:00 PM. Project code is ALPHA-2026.",
+    "pii": [],
+    "keep": [
+      "room 402",
+      "3:00 PM",
+      "4:00 PM",
+      "ALPHA-2026"
+    ]
+  },
+  {
+    "source": "data.json #57",
+    "text": "This is Kavya Nair from Kochi. Please call me back on +91 94470 12345.",
+    "pii": [
+      "Kavya Nair",
+      "94470 12345"
+    ],
+    "keep": [
+      "call me back"
+    ]
+  },
+  {
+    "source": "data.json #59",
+    "text": "Customer Lakshmi Prasad wants a refund to her card ending in 7781.",
+    "pii": [
+      "Lakshmi Prasad",
+      "7781"
+    ],
+    "keep": [
+      "wants a refund"
+    ]
+  },
+  {
+    "source": "data.json #61",
+    "text": "Aadhaar number 3456 7890 1234 is linked to mobile 9000012345.",
+    "pii": [
+      "3456 7890 1234",
+      "9000012345"
+    ],
+    "keep": [
+      "is linked to mobile"
+    ]
+  },
+  {
+    "source": "data.json #63",
+    "text": "Order for Arvind Swamy, flat 12C, Lotus Towers, Andheri West, Mumbai 400053.",
+    "pii": [
+      "Arvind Swamy",
+      "flat 12C, Lotus Towers",
+      "400053"
+    ],
+    "keep": [
+      "Order for"
+    ]
+  },
+  {
+    "source": "data.json #65",
+    "text": "Please verify the KYC for Shalini Bhat, DOB 09/12/1990, PAN FGHIJ2345K.",
+    "pii": [
+      "Shalini Bhat",
+      "09/12/1990",
+      "FGHIJ2345K"
+    ],
+    "keep": [
+      "verify the KYC"
+    ]
+  },
+  {
+    "source": "data.json #67",
+    "text": "Refund of ₹1,499 for order ORD-77812 will reach your account in 5-7 days.",
+    "pii": [],
+    "keep": [
+      "₹1,499",
+      "ORD-77812",
+      "5-7 days"
+    ]
+  },
+  {
+    "source": "data.json #69",
+    "text": "Deliver to Imran Qureshi, House No 45, Civil Lines, Jaipur 302006. Contact 9414012345.",
+    "pii": [
+      "Imran Qureshi",
+      "302006",
+      "9414012345"
+    ],
+    "keep": [
+      "Deliver to"
+    ]
+  },
+  {
+    "source": "data.json #71",
+    "text": "The UPI ID priya.s@okaxis received ₹3,200 from Kunal Shah.",
+    "pii": [
+      "priya.s@okaxis",
+      "Kunal Shah"
+    ],
+    "keep": [
+      "₹3,200"
+    ]
+  },
+  {
+    "source": "data.json #73",
+    "text": "Contact our branch manager Sanjay Kulkarni at sanjay.kulkarni@bank.example.",
+    "pii": [
+      "Sanjay Kulkarni",
+      "sanjay.kulkarni@bank.example"
+    ],
+    "keep": [
+      "branch manager"
+    ]
+  },
+  {
+    "source": "data.json #75",
+    "text": "Namaste, main Pradeep Yadav bol raha hoon, mera number 9711122233 hai.",
+    "pii": [
+      "Pradeep Yadav",
+      "9711122233"
+    ],
+    "keep": [
+      "Namaste"
+    ]
+  },
+  {
+    "source": "data.json #77",
+    "text": "Ship to Kevin O'Brien, 1428 Elm Street, Springwood, OH 44101.",
+    "pii": [
+      "Kevin O'Brien",
+      "1428 Elm Street",
+      "44101"
+    ],
+    "keep": [
+      "Ship to"
+    ]
+  },
+  {
+    "source": "data.json #79",
+    "text": "Account holder: Grace Kim. Routing 011000015, account 4455667788.",
+    "pii": [
+      "Grace Kim",
+      "4455667788"
+    ],
+    "keep": [
+      "Account holder"
+    ]
+  },
+  {
+    "source": "data.json #81",
+    "text": "Contact me at james.bond007@mi6.example or +44 20 7946 0123.",
+    "pii": [
+      "james.bond007@mi6.example",
+      "20 7946 0123"
+    ],
+    "keep": [
+      "Contact me at"
+    ]
+  },
+  {
+    "source": "data.json #83",
+    "text": "Lucas Martin lives at 88 Rue de Rivoli, Paris. Téléphone: +33 1 42 68 53 00.",
+    "pii": [
+      "Lucas Martin",
+      "1 42 68 53 00"
+    ],
+    "keep": [
+      "Paris"
+    ]
+  },
+  {
+    "source": "data.json #85",
+    "text": "Mein Name ist Klaus Becker, meine Telefonnummer ist +49 30 1234 5678.",
+    "pii": [
+      "Klaus Becker",
+      "30 1234 5678"
+    ],
+    "keep": [
+      "Mein Name ist"
+    ]
+  },
+  {
+    "source": "data.json #87",
+    "text": "Please refund Ahmed Hassan at IBAN AE07 0331 2345 6789 0123 456.",
+    "pii": [
+      "Ahmed Hassan",
+      "AE07 0331 2345 6789 0123 456"
+    ],
+    "keep": [
+      "Please refund"
+    ]
+  },
+  {
+    "source": "data.json #89",
+    "text": "Our Sydney client, Liam Wilson, can be reached on +61 412 345 678.",
+    "pii": [
+      "Liam Wilson",
+      "412 345 678"
+    ],
+    "keep": [
+      "Sydney client"
+    ]
+  },
+  {
+    "source": "data.json #91",
+    "text": "Patient Anita Desai, 54, MRN 7788990, allergic to penicillin.",
+    "pii": [
+      "Anita Desai",
+      "7788990"
+    ],
+    "keep": [
+      "allergic to penicillin"
+    ]
+  },
+  {
+    "source": "data.json #93",
+    "text": "Dr. Neha Kapoor prescribed atorvastatin 20mg for patient ID PT-44821.",
+    "pii": [
+      "Neha Kapoor",
+      "PT-44821"
+    ],
+    "keep": [
+      "atorvastatin 20mg"
+    ]
+  },
+  {
+    "source": "data.json #95",
+    "text": "Lab results for MRN 00561234 show elevated glucose. Notify Dr. Arora.",
+    "pii": [
+      "00561234",
+      "Arora"
+    ],
+    "keep": [
+      "elevated glucose"
+    ]
+  },
+  {
+    "source": "data.json #97",
+    "text": "The clinic treated 42 patients with influenza this week.",
+    "pii": [],
+    "keep": [
+      "42 patients",
+      "influenza"
+    ]
+  },
+  {
+    "source": "data.json #99",
+    "text": "Card 4012 8888 8888 1881 expiring 11/27 was declined.",
+    "pii": [
+      "4012 8888 8888 1881"
+    ],
+    "keep": [
+      "was declined"
+    ]
+  },
+  {
+    "source": "data.json #101",
+    "text": "IFSC UTIB0000123, account number 918020012345678, holder Pallavi Joshi.",
+    "pii": [
+      "918020012345678",
+      "Pallavi Joshi"
+    ],
+    "keep": [
+      "IFSC"
+    ]
+  },
+  {
+    "source": "data.json #103",
+    "text": "The loan application of Harpreet Singh (PAN LMNOP4567Q) was approved.",
+    "pii": [
+      "Harpreet Singh",
+      "LMNOP4567Q"
+    ],
+    "keep": [
+      "was approved"
+    ]
+  },
+  {
+    "source": "data.json #105",
+    "text": "Quarterly interest of 7.1% was credited to all savings accounts.",
+    "pii": [],
+    "keep": [
+      "7.1%",
+      "savings accounts"
+    ]
+  },
+  {
+    "source": "data.json #107",
+    "text": "Employee ID EMP-99812 (Ritika Sen) has been promoted to Senior Engineer.",
+    "pii": [
+      "EMP-99812",
+      "Ritika Sen"
+    ],
+    "keep": [
+      "promoted to"
+    ]
+  },
+  {
+    "source": "data.json #109",
+    "text": "Please send the payslip to kiran.rao@company.example, not her personal email.",
+    "pii": [
+      "kiran.rao@company.example"
+    ],
+    "keep": [
+      "send the payslip"
+    ]
+  },
+  {
+    "source": "data.json #111",
+    "text": "Background check for candidate Nisha Agarwal: PAN NOPQR5678S, Aadhaar 7890 1234 5678.",
+    "pii": [
+      "Nisha Agarwal",
+      "NOPQR5678S",
+      "7890 1234 5678"
+    ],
+    "keep": [
+      "Background check"
+    ]
+  },
+  {
+    "source": "data.json #113",
+    "text": "Resignation received from Varun Malhotra, last working day 30 June 2026.",
+    "pii": [
+      "Varun Malhotra",
+      "30 June 2026"
+    ],
+    "keep": [
+      "last working day"
+    ]
+  },
+  {
+    "source": "data.json #115",
+    "text": "Password: Summer@2026! Username: john.doe",
+    "pii": [
+      "Summer@2026!",
+      "john.doe"
+    ],
+    "keep": [
+      "Password:",
+      "Username:"
+    ]
+  },
+  {
+    "source": "data.json #117",
+    "text": "SSH login from 172.16.254.1 by user root failed 3 times.",
+    "pii": [
+      "172.16.254.1"
+    ],
+    "keep": [
+      "failed 3 times"
+    ]
+  },
+  {
+    "source": "data.json #119",
+    "text": "Device MAC 3C:22:FB:9A:10:7E connected to guest Wi-Fi.",
+    "pii": [
+      "3C:22:FB:9A:10:7E"
+    ],
+    "keep": [
+      "guest Wi-Fi"
+    ]
+  },
+  {
+    "source": "data.json #121",
+    "text": "Error 504 at /api/v2/orders; retry count 3; latency 1200ms.",
+    "pii": [],
+    "keep": [
+      "Error 504",
+      "/api/v2/orders",
+      "1200ms"
+    ]
+  },
+  {
+    "source": "data.json #123",
+    "text": "The database password is db_pass_2026 and the host is 10.0.0.12.",
+    "pii": [
+      "db_pass_2026",
+      "10.0.0.12"
+    ],
+    "keep": [
+      "the host is"
+    ]
+  },
+  {
+    "source": "data.json #125",
+    "text": "yo its arjun, text me at 9876012345 when ur free",
+    "pii": [
+      "arjun",
+      "9876012345"
+    ],
+    "keep": [
+      "when ur free"
+    ]
+  },
+  {
+    "source": "data.json #127",
+    "text": "call me on 99887 76655, im near MG Road metro",
+    "pii": [
+      "99887 76655"
+    ],
+    "keep": [
+      "call me on"
+    ]
+  },
+  {
+    "source": "data.json #129",
+    "text": "ok so the meeting is at 5, dont be late",
+    "pii": [],
+    "keep": [
+      "meeting is at 5"
+    ]
+  },
+  {
+    "source": "data.json #131",
+    "text": "Best regards,\nSiddharth Rao\nProduct Manager\nsiddharth.rao@startup.io\n+91 90080 12345",
+    "pii": [
+      "Siddharth Rao",
+      "siddharth.rao@startup.io",
+      "90080 12345"
+    ],
+    "keep": [
+      "Product Manager"
+    ]
+  },
+  {
+    "source": "data.json #133",
+    "text": "Cheers,\nTom\n07911 123456",
+    "pii": [
+      "Tom",
+      "07911 123456"
+    ],
+    "keep": [
+      "Cheers"
+    ]
+  },
+  {
+    "source": "data.json #135",
+    "text": "To: hr@company.example\nCc: legal@company.example\nSubject: Policy update",
+    "pii": [],
+    "keep": [
+      "Subject: Policy update"
+    ]
+  },
+  {
+    "source": "data.json #137",
+    "text": "என் பெயர் முருகன். என் தொலைபேசி எண் 9840012345.",
+    "pii": [
+      "முருகன்",
+      "9840012345"
+    ],
+    "keep": [
+      "என் பெயர்"
+    ]
+  },
+  {
+    "source": "data.json #139",
+    "text": "Mi nombre es Carlos Ruiz y vivo en Madrid.",
+    "pii": [
+      "Carlos Ruiz"
+    ],
+    "keep": [
+      "vivo en Madrid"
+    ]
+  },
+  {
+    "source": "data.json #141",
+    "text": "Aapka OTP 559921 hai. Kisi ke saath share na karein.",
+    "pii": [
+      "559921"
+    ],
+    "keep": [
+      "share na karein"
+    ]
+  },
+  {
+    "source": "data.json #143",
+    "text": "The Ganga flows through Varanasi and Patna before reaching Kolkata.",
+    "pii": [],
+    "keep": [
+      "Ganga",
+      "Varanasi",
+      "Patna",
+      "Kolkata"
+    ]
+  },
+  {
+    "source": "data.json #145",
+    "text": "Tata Motors reported a 12% jump in Nexon sales.",
+    "pii": [],
+    "keep": [
+      "Tata Motors",
+      "12%",
+      "Nexon"
+    ]
+  },
+  {
+    "source": "data.json #147",
+    "text": "The Eiffel Tower and the Louvre are the most visited sites in Paris.",
+    "pii": [],
+    "keep": [
+      "Eiffel Tower",
+      "Louvre",
+      "Paris"
+    ]
+  },
+  {
+    "source": "data.json #149",
+    "text": "Chennai Super Kings beat Mumbai Indians by 6 wickets.",
+    "pii": [],
+    "keep": [
+      "Chennai Super Kings",
+      "Mumbai Indians"
+    ]
+  },
+  {
+    "source": "data.json #151",
+    "text": "Flipkart's Big Billion Days sale starts on Friday.",
+    "pii": [],
+    "keep": [
+      "Flipkart",
+      "Big Billion Days",
+      "Friday"
+    ]
+  },
+  {
+    "source": "data.json #153",
+    "text": "The Amazon rainforest covers parts of Brazil, Peru and Colombia.",
+    "pii": [],
+    "keep": [
+      "Amazon",
+      "Brazil",
+      "Peru",
+      "Colombia"
+    ]
+  },
+  {
+    "source": "data.json #155",
+    "text": "The Ford Mustang and Chevrolet Camaro compete in the same segment.",
+    "pii": [],
+    "keep": [
+      "Ford Mustang",
+      "Chevrolet Camaro"
+    ]
+  },
+  {
+    "source": "data.json #157",
+    "text": "Q4 revenue was ₹12.4 crore, up 18% year on year.",
+    "pii": [],
+    "keep": [
+      "₹12.4 crore",
+      "18%"
+    ]
+  },
+  {
+    "source": "data.json #159",
+    "text": "Sprint 42 closed with 38 story points completed.",
+    "pii": [],
+    "keep": [
+      "Sprint 42",
+      "38 story points"
+    ]
+  },
+  {
+    "source": "data.json #161",
+    "text": "Server uptime last month was 99.95% across 120 nodes.",
+    "pii": [],
+    "keep": [
+      "99.95%",
+      "120 nodes"
+    ]
+  },
+  {
+    "source": "data.json #163",
+    "text": "Model v2 has 7 billion parameters and a 128k context window.",
+    "pii": [],
+    "keep": [
+      "7 billion",
+      "128k"
+    ]
+  },
+  {
+    "source": "data.json #165",
+    "text": "Room 1204 is booked for the board meeting on Thursday.",
+    "pii": [],
+    "keep": [
+      "Room 1204",
+      "Thursday"
+    ]
+  },
+  {
+    "source": "data.json #167",
+    "text": "Build #4521 passed all 312 tests in 8 minutes.",
+    "pii": [],
+    "keep": [
+      "Build #4521",
+      "312 tests"
+    ]
+  },
+  {
+    "source": "data.json #169",
+    "text": "Sundar Pichai spoke at the Google I/O keynote.",
+    "pii": [],
+    "keep": [
+      "Google I/O"
+    ]
+  },
+  {
+    "source": "data.json #171",
+    "text": "Mahatma Gandhi was born in Porbandar in 1869.",
+    "pii": [],
+    "keep": [
+      "Porbandar",
+      "1869"
+    ]
+  },
+  {
+    "source": "data.json #173",
+    "text": "Please ask Victoria to book a room at the Victoria Hotel.",
+    "pii": [
+      "ask Victoria"
+    ],
+    "keep": [
+      "Victoria Hotel"
+    ]
+  },
+  {
+    "source": "data.json #175",
+    "text": "Paris Hilton stayed at a hotel in Paris.",
+    "pii": [],
+    "keep": [
+      "hotel in Paris"
+    ]
+  },
+  {
+    "source": "data.json #177",
+    "text": "My daughter Aarohi, age 7, studies at Delhi Public School.",
+    "pii": [
+      "Aarohi"
+    ],
+    "keep": [
+      "Delhi Public School"
+    ]
+  },
+  {
+    "source": "data.json #179",
+    "text": "Hello team, this is regarding customer Rohan Verma (rohan.verma@mail.example, +91 99100 22334). He lives at 56 Lajpat Nagar, New Delhi 110024 and his PAN is ABCDE1234F. His card ending in 3321 was charged twice on 2 February 2026. Please refund to account 6677889900 and update ticket SUP-5512.",
+    "pii": [
+      "Rohan Verma",
+      "rohan.verma@mail.example",
+      "99100 22334",
+      "56 Lajpat Nagar",
+      "110024",
+      "ABCDE1234F",
+      "3321",
+      "2 February 2026",
+      "6677889900"
+    ],
+    "keep": [
+      "update ticket SUP-5512"
+    ]
+  },
+  {
+    "source": "data.json #181",
+    "text": "Medical referral: Patient Ravi Shankar (DOB 14/02/1970, MRN 4455120) is referred by Dr. Sneha Iyer to the cardiology department at Apollo Hospital, Chennai. Contact the patient at 9884012345.",
+    "pii": [
+      "Ravi Shankar",
+      "14/02/1970",
+      "4455120",
+      "Sneha Iyer",
+      "9884012345"
+    ],
+    "keep": [
+      "cardiology department"
+    ]
+  },
+  {
+    "source": "holdout.py #0",
+    "text": "Hello, I'm Deepak Choudhary. Reach me on 9988776655 or deepak.c@outlook.com.",
+    "pii": [
+      "Deepak Choudhary",
+      "9988776655",
+      "deepak.c@outlook.com"
+    ],
+    "keep": [
+      "Reach me on"
+    ]
+  },
+  {
+    "source": "holdout.py #1",
+    "text": "Kindly courier the documents to Pooja Shetty, 5 Residency Road, Mangalore 575001.",
+    "pii": [
+      "Pooja Shetty",
+      "5 Residency Road",
+      "575001"
+    ],
+    "keep": [
+      "courier the documents"
+    ]
+  },
+  {
+    "source": "holdout.py #2",
+    "text": "Our CTO Rajiv Menon will join the call at 4pm. The agenda covers Kubernetes and Terraform.",
+    "pii": [
+      "Rajiv Menon"
+    ],
+    "keep": [
+      "Kubernetes",
+      "Terraform",
+      "4pm"
+    ]
+  },
+  {
+    "source": "holdout.py #3",
+    "text": "Tom Hardy's claim was rejected. His policy number: POL-4412098. Email tom.h@mailbox.org.",
+    "pii": [
+      "Tom Hardy",
+      "POL-4412098",
+      "tom.h@mailbox.org"
+    ],
+    "keep": [
+      "claim was rejected"
+    ]
+  },
+  {
+    "source": "holdout.py #4",
+    "text": "The Chennai office moved to Tidel Park last year. Headcount is 340.",
+    "pii": [],
+    "keep": [
+      "Chennai",
+      "Tidel Park",
+      "340"
+    ]
+  },
+  {
+    "source": "holdout.py #5",
+    "text": "Password reset requested for user id kiran_88. New password: Blue#Sky2025.",
+    "pii": [
+      "kiran_88",
+      "Blue#Sky2025"
+    ],
+    "keep": [
+      "Password reset requested"
+    ]
+  },
+  {
+    "source": "holdout.py #6",
+    "text": "Aadhaar 5678 1234 9012 and PAN QWERT1234Y were submitted by Fatima Sheikh.",
+    "pii": [
+      "5678 1234 9012",
+      "QWERT1234Y",
+      "Fatima Sheikh"
+    ],
+    "keep": [
+      "were submitted by"
+    ]
+  },
+  {
+    "source": "holdout.py #7",
+    "text": "Patient Gopal Rao, MRN 5521873, DOB 23/04/1961, presented with chest pain.",
+    "pii": [
+      "Gopal Rao",
+      "5521873",
+      "23/04/1961"
+    ],
+    "keep": [
+      "chest pain"
+    ]
+  },
+  {
+    "source": "holdout.py #8",
+    "text": "Wire USD 1,200 to account 77889900112 (beneficiary: Nikhil Joshi).",
+    "pii": [
+      "77889900112",
+      "Nikhil Joshi"
+    ],
+    "keep": [
+      "USD 1,200"
+    ]
+  },
+  {
+    "source": "holdout.py #9",
+    "text": "Version 3.2.1 fixed the login bug reported in ticket OPS-5510 by the QA team.",
+    "pii": [],
+    "keep": [
+      "3.2.1",
+      "OPS-5510",
+      "QA team"
+    ]
+  },
+  {
+    "source": "holdout.py #10",
+    "text": "Call Ms. Hannah Lee at +1 (646) 555-0144 after 6 PM EST.",
+    "pii": [
+      "Hannah Lee",
+      "(646) 555-0144"
+    ],
+    "keep": [
+      "after 6 PM EST"
+    ]
+  },
+  {
+    "source": "holdout.py #11",
+    "text": "sneha here! my number's 9090909090, whatsapp only pls",
+    "pii": [
+      "sneha",
+      "9090909090"
+    ],
+    "keep": [
+      "whatsapp only"
+    ]
+  },
+  {
+    "source": "holdout.py #12",
+    "text": "Card 4539 1488 0343 6467, CVV 881, was used at Amazon on 3 July 2025.",
+    "pii": [
+      "4539 1488 0343 6467",
+      "CVV 881"
+    ],
+    "keep": [
+      "Amazon"
+    ]
+  },
+  {
+    "source": "holdout.py #13",
+    "text": "Delivery for Vivek at H.No 221, Sector 14, Gurgaon 122001.",
+    "pii": [
+      "Vivek",
+      "H.No 221",
+      "122001"
+    ],
+    "keep": [
+      "Delivery for"
+    ]
+  },
+  {
+    "source": "holdout.py #14",
+    "text": "Toyota and Honda reported record sales in Japan this quarter.",
+    "pii": [],
+    "keep": [
+      "Toyota",
+      "Honda",
+      "Japan"
+    ]
+  },
+  {
+    "source": "holdout.py #15",
+    "text": "Thanks, Aisha Khan\nSenior Analyst\naisha.khan@firm.co.uk | 020 7946 0958",
+    "pii": [
+      "Aisha Khan",
+      "aisha.khan@firm.co.uk",
+      "020 7946 0958"
+    ],
+    "keep": [
+      "Senior Analyst"
+    ]
+  },
+  {
+    "source": "holdout.py #16",
+    "text": "Voter ID ABC1234567 belongs to Manoj Tiwari of Varanasi.",
+    "pii": [
+      "ABC1234567",
+      "Manoj Tiwari"
+    ],
+    "keep": [
+      "Voter ID"
+    ]
+  },
+  {
+    "source": "holdout.py #17",
+    "text": "GitHub token ghp_A1b2C3d4E5f6G7h8I9j0 was leaked in the logs by Ben Carter.",
+    "pii": [
+      "ghp_A1b2C3d4E5f6G7h8I9j0",
+      "Ben Carter"
+    ],
+    "keep": [
+      "leaked in the logs"
+    ]
+  },
+  {
+    "source": "holdout.py #18",
+    "text": "Mera naam Anjali Gupta hai aur mera email anjali.g@gmail.com hai.",
+    "pii": [
+      "Anjali Gupta",
+      "anjali.g@gmail.com"
+    ],
+    "keep": [
+      "Mera naam"
+    ]
+  },
+  {
+    "source": "holdout.py #19",
+    "text": "The Taj Mahal in Agra attracts 7 million visitors a year.",
+    "pii": [],
+    "keep": [
+      "Taj Mahal",
+      "Agra",
+      "7 million"
+    ]
+  }
+]

@@ -1,0 +1,33 @@
+[project]
+name = "kryptos-pii"
+version = "0.1.0"
+description = "Kryptos PII Protection: a platform extension. Regex proposes, a fine-tuned LAYA classifier decides."
+requires-python = ">=3.12"
+# The detector needs laya and nothing else. Presidio, spaCy and the OpenAI
+# client went with the three-engine comparison demo; none of them were ever on
+# the extension's code path, and the spaCy model alone was ~600 MB.
+dependencies = [
+    "laya[serve]==0.3.9",  # the "serve" extra pulls in fastapi + uvicorn
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    # The test suite reads extension.yaml to check the manifest against the
+    # engine. Declared rather than relied on transitively.
+    "pyyaml>=6",
+]
+
+[project.optional-dependencies]
+# The hosted runtime, the SDK and the Claude integration. The detector itself
+# needs only the base dependencies.
+serve = ["fastapi", "uvicorn[standard]", "pyyaml"]
+sdk = ["httpx"]
+mcp = ["mcp>=1.2", "httpx"]
+
+[project.scripts]
+kryptos-pii-serve = "kryptos_pii.service:app"
+kryptos-pii-mcp = "integrations.mcp.server:main"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
