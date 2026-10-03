@@ -34,6 +34,15 @@ dist/
 # Logs
 *.log
 
+# Derived training data. Rebuilt with finetune/nemotron.py, 160 MB each, and
+# the parquet cache exists precisely so a rebuild needs no network.
+finetune/nemotron*.json
+finetune/.nemotron-cache/
+
+# Training runs: checkpoints and their logs. A run is reproducible from
+# train.py and the corpus; the ~850 MB it writes does not belong in git.
+finetune/runs/
+
 # Model / ML artifacts
 *.pt
 *.pth

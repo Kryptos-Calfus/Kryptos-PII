@@ -30,6 +30,7 @@ from pathlib import Path
 from kryptos_pii.candidates import QUESTION, pieces, set_context_chars, state_for
 from kryptos_pii.classify import classify, luhn_valid
 from kryptos_pii.model import model_dir
+from kryptos_pii.taxonomy import HIGH_RISK_CATEGORIES, category_of
 
 # Resolved once per process: an explicit KRYPTOS_PII_MODEL_DIR, the checkpoint
 # in a repository checkout, or the one 'kryptos-pii-model download' fetched.
@@ -68,25 +69,34 @@ _CERTAIN = [
 # label. The repository's own demo already solved this with field regex, and
 # CLAUDE.md section 11 puts deterministic patterns ahead of the model for
 # precisely this reason. The key stays visible; only the value is a finding.
+# The label already names the kind of identifier, which is the only reason
+# these can be told apart at all. The value is now that specific type rather
+# than the broad category it used to collapse into; taxonomy.category_of maps
+# it back, so nothing that matched before stops matching.
 _FIELD_TYPES = {
-    r"a/?c|acct|account(?: number| no\.?)?|bank account": "financial",
-    r"ifsc|routing(?: number)?|sort code": "financial",
-    r"upi(?: id)?": "financial",
-    r"cvv|cvc": "secret",
-    r"otp|verification code|2fa": "secret",
-    r"password|passcode|pwd": "secret",
-    r"api[ _-]?key|secret|token": "secret",
+    r"a/?c|acct|account(?: number| no\.?)?|bank account": "bank_account",
+    r"ifsc|routing(?: number)?|sort code": "ifsc",
+    r"upi(?: id)?": "upi_id",
+    r"cvv|cvc": "cvv",
+    r"otp|verification code|2fa": "otp",
+    r"password|passcode|pwd": "password",
+    r"api[ _-]?key|secret|token": "api_key",
+    # A user name is a credential-adjacent value, but USERNAME as a type is out
+    # of scope for this change, so this one keeps the broad category.
     r"(?:login )?user ?name|user id": "secret",
-    r"aadhaar|aadhar": "government_id",
-    r"pan(?: number)?": "government_id",
-    r"passport(?: number| no\.?)?": "government_id",
-    r"driver'?s? licen[cs]e(?: number| no\.?)?|dl no\.?": "government_id",
-    r"mrn|medical record number": "government_id",
-    r"(?:insurance )?member id|policy(?: number| no\.?)?": "government_id",
-    r"employee id|emp id": "government_id",
-    r"(?:tax|national) id(?: number)?|ssn": "government_id",
-    r"ip(?: address)?": "network_address",
-    r"mac(?: address)?": "network_address",
+    r"aadhaar|aadhar": "aadhaar",
+    r"pan(?: number)?": "pan",
+    r"passport(?: number| no\.?)?": "passport",
+    r"driver'?s? licen[cs]e(?: number| no\.?)?|dl no\.?": "driver_license",
+    r"mrn|medical record number": "medical_record",
+    r"(?:insurance )?member id|policy(?: number| no\.?)?": "health_insurance",
+    r"employee id|emp id": "employee_id",
+    # Split from one entry: 'ssn' and 'tax id' were a single alternation
+    # reporting one type, and they name two different identifiers.
+    r"ssn": "ssn",
+    r"(?:tax|national) id(?: number)?": "tax_id",
+    r"ip(?: address)?": "ip_address",
+    r"mac(?: address)?": "mac_address",
     r"dob|date of birth": "date_of_birth",
     r"phone|mobile|contact(?: number)?|cell": "phone",
 }
@@ -106,7 +116,9 @@ _FIELD_RES = [
     for key, label in _FIELD_TYPES.items()
 ]
 
-HIGH_RISK_TYPES = frozenset({"secret", "payment_card", "financial", "government_id"})
+# Kept as a name other modules import. These are categories, so a specific
+# type inherits its category's risk and no risk assessment changes.
+HIGH_RISK_TYPES = HIGH_RISK_CATEGORIES
 
 
 @dataclass(frozen=True)
@@ -219,7 +231,7 @@ def _labelled_spans(text: str) -> list[Detection]:
             # non-trivial. This is what keeps the stage precise enough to run
             # ahead of the model.
             digits = sum(c.isdigit() for c in value)
-            if label == "secret":
+            if category_of(label) == "secret":
                 if len(value) < 6 or value.lower() in ("closed", "expired", "reset"):
                     continue
             elif digits < 4:

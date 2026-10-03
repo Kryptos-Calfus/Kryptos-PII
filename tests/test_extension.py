@@ -21,6 +21,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from kryptos_pii.classify import classify, luhn_valid
+from kryptos_pii.taxonomy import category_of
 from kryptos_pii.contract import Decision, ExtensionResult, Risk
 from kryptos_pii.engine import resolve_config, run
 
@@ -48,7 +49,14 @@ REGEX = {"detector_mode": "regex"}
     ],
 )
 def test_categories(value: str, expected: str) -> None:
-    assert classify(value) == expected
+    """The category is what this test always asserted, and it must not move.
+
+    classify() now returns the narrowest type it can support, so the assertion
+    is made on the category: an Aadhaar number is still government_id, an IP is
+    still network_address. test_specific_types_are_preserved covers the other
+    half -- that the narrower type survives rather than being discarded.
+    """
+    assert category_of(classify(value)) == expected
 
 
 def test_luhn_separates_a_card_from_a_long_number() -> None:
@@ -70,9 +78,12 @@ def test_api_keys_and_cards_never_depend_on_the_model() -> None:
 def test_a_field_label_identifies_its_value() -> None:
     text = "DOB: 01/02/1990, Aadhaar: 1234 5678 9012, password: Hunter2!xyz"
     result = run(text, operation="redact", config=REGEX).result
+    # The placeholder now names the specific type the field label established.
     assert result.transformed_content == (
-        "DOB: [DATE_OF_BIRTH], Aadhaar: [GOVERNMENT_ID], password: [SECRET]"
+        "DOB: [DATE_OF_BIRTH], Aadhaar: [AADHAAR], password: [PASSWORD]"
     )
+    # ...and every one of those still belongs to the category it always did.
+    assert [f.category for f in result.findings] == ["date_of_birth", "government_id", "secret"]
 
 
 def test_a_label_in_prose_is_not_a_finding() -> None:
@@ -87,7 +98,8 @@ def test_a_label_in_prose_is_not_a_finding() -> None:
 def test_a_value_span_stops_at_the_value() -> None:
     """A span that runs on would delete text that is not personal."""
     result = run("acct 123456789012345 and ip 10.2.3.4", operation="redact", config=REGEX).result
-    assert result.transformed_content == "acct [FINANCIAL] and ip [NETWORK_ADDRESS]"
+    assert result.transformed_content == "acct [BANK_ACCOUNT] and ip [IP_ADDRESS]"
+    assert [f.category for f in result.findings] == ["financial", "network_address"]
 
 
 # --- actions --------------------------------------------------------------
