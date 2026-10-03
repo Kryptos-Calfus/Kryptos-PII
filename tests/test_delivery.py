@@ -147,6 +147,68 @@ def local_module():  # noqa: ANN201 - imported late so sys.path is set up first
     return kryptos_pii_local
 
 
+# --- scoring large documents ---------------------------------------------
+
+
+def test_candidate_count_grows_with_document_length() -> None:
+    """The reason scoring has to be bounded at all.
+
+    Candidates scale with input, so an unbounded batch makes peak memory a
+    function of document size. Spelled out as a test because it is the premise
+    the batching in ``detector.score`` rests on.
+    """
+    from kryptos_pii.candidates import pieces
+
+    unit = (
+        "Jennifer Lopez-Garcia called from (415) 555-0132 about order #88213. "
+        "Her SSN is 536-22-8841 and she lives at 1600 Pennsylvania Avenue. "
+    )
+    small = len(pieces(unit))
+    large = len(pieces(unit * 50))
+
+    assert small > 0
+    # Linear, not bounded: 50x the text proposes roughly 50x the candidates.
+    assert large > small * 25
+
+
+def test_batching_is_bounded_and_covers_every_span(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Every candidate is scored exactly once, in batches no larger than the cap.
+
+    Runs against a stub agent rather than the checkpoint: the property under
+    test is how spans are grouped, and that should be verifiable without a
+    850 MB download or a minute of inference.
+    """
+    from kryptos_pii import detector
+
+    batches: list[int] = []
+
+    class StubAgent:
+        def predict_batch(self, states, question):  # noqa: ANN001, ANN202
+            batches.append(len(states))
+            return [{"answers": {"pii": {"noul": 0.9}}} for _ in states]
+
+    checkpoint = detector._Checkpoint(ROOT / "nowhere", 120)
+    checkpoint._agent = StubAgent()
+    monkeypatch.setattr(detector, "MAX_BATCH_SPANS", 10)
+
+    spans = [(i, i + 3) for i in range(0, 250, 5)]
+    scores = checkpoint.score("x" * 300, spans)
+
+    assert len(scores) == len(spans), "every span gets exactly one score"
+    assert batches, "the agent was actually called"
+    assert max(batches) <= 10, f"a batch exceeded the cap: {batches}"
+    assert sum(batches) == len(spans), "spans were scored once each, not dropped or repeated"
+
+
+def test_scoring_no_spans_never_loads_the_model() -> None:
+    """Text with no candidates must not pay for a checkpoint it does not need."""
+    from kryptos_pii import detector
+
+    checkpoint = detector._Checkpoint(ROOT / "definitely-not-a-checkpoint", 120)
+
+    assert checkpoint.score("nothing here", []) == []
+
+
 # --- the package has to be installable ------------------------------------
 
 

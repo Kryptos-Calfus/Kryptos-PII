@@ -21,6 +21,7 @@ Two rules follow from CLAUDE.md and are enforced rather than documented:
 
 from __future__ import annotations
 
+import os
 import re
 import threading
 from dataclasses import dataclass
@@ -36,6 +37,13 @@ from kryptos_pii.model import model_dir
 DEFAULT_MODEL_DIR = model_dir()
 DEFAULT_THRESHOLD = 0.5
 DEFAULT_CONTEXT_CHARS = 120
+
+# How many candidate spans go to the model at once. Peak memory scales with this
+# rather than with document length, so it is the knob that decides whether a
+# large document is slow or fatal. 64 keeps a batch's inputs well under a
+# megabyte at the default context window while still amortising per-call
+# overhead; raise it on a machine with headroom.
+MAX_BATCH_SPANS = max(1, int(os.environ.get("KRYPTOS_PII_MAX_BATCH_SPANS", "64")))
 
 # The checkpoint answers yes/no, so it cannot name a category. ``classify`` is
 # that step: a deterministic read of the matched text, used to label the finding
@@ -155,11 +163,32 @@ class _Checkpoint:
             return agent
 
     def score(self, text: str, spans: list[tuple[int, int]]) -> list[float]:
+        """Score every candidate span, in bounded batches.
+
+        Candidate count grows with document length -- roughly 60 per KB of
+        prose -- so a 500 KB document proposes around 28,000 spans. Handing all
+        of them to the model in one call made peak memory a function of input
+        size, which is how a large document turns into an OOM rather than a slow
+        request.
+
+        Batching is lossless here, and that is a property of the design rather
+        than a hope: ``state_for`` already gives each span its own 120-character
+        window, so a span's input does not depend on which other spans travel
+        with it. Where the batch boundary falls cannot change a score.
+
+        This is why the fix is batching and not chunking the text. Splitting the
+        document would cut context at the chunk edges and change what the model
+        sees near them; splitting the candidate list changes nothing.
+        """
         if not spans:
             return []
         agent = self.load()
-        results = agent.predict_batch([state_for(text, s, e) for s, e in spans], QUESTION)
-        return [float(r["answers"]["pii"]["noul"]) for r in results]
+        out: list[float] = []
+        for start in range(0, len(spans), MAX_BATCH_SPANS):
+            window = spans[start : start + MAX_BATCH_SPANS]
+            results = agent.predict_batch([state_for(text, s, e) for s, e in window], QUESTION)
+            out += [float(r["answers"]["pii"]["noul"]) for r in results]
+        return out
 
 
 _checkpoints: dict[tuple[str, int], _Checkpoint] = {}

@@ -207,9 +207,15 @@ performance:
   detector: regex candidate proposal plus one classifier pass per candidate
   typical_latency_ms: 120
   notes: >-
-    Latency scales with the number of candidate spans, not with text length.
-    The checkpoint is ~850 MB (bf16, the precision it computes in) and is
-    loaded once per process at startup.
+    Latency tracks the number of candidate spans, which is roughly 60 per KB of
+    prose -- so it does grow with document length, just not with the characters
+    the model never reads. Each span is judged in a 120-character window, never
+    against the whole document, so there is no input length at which the text
+    stops fitting. Spans are scored in bounded batches
+    (KRYPTOS_PII_MAX_BATCH_SPANS, default 64), which is what keeps peak memory a
+    function of that setting rather than of the document. The checkpoint is
+    ~850 MB (bf16, the precision it computes in) and is loaded once per process
+    at startup.
 
 # The ways a customer can consume this extension. The control plane renders its
 # integration documentation from this list and serves the artifacts named here,
