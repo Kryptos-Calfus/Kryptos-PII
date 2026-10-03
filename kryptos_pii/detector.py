@@ -21,25 +21,19 @@ Two rules follow from CLAUDE.md and are enforced rather than documented:
 
 from __future__ import annotations
 
-import os
 import re
-import sys
 import threading
 from dataclasses import dataclass
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
-# finetune/ is a flat module directory, not a package; the training scripts put
-# it on the path the same way.
-for entry in (str(REPO_ROOT), str(REPO_ROOT / "finetune")):
-    if entry not in sys.path:
-        sys.path.insert(0, entry)
+from kryptos_pii.candidates import QUESTION, pieces, set_context_chars, state_for
+from kryptos_pii.classify import classify, luhn_valid
+from kryptos_pii.model import model_dir
 
-from finetune.common import QUESTION, pieces, set_context_chars, state_for  # noqa: E402
-
-from kryptos_pii.classify import classify, luhn_valid  # noqa: E402
-
-DEFAULT_MODEL_DIR = Path(os.environ.get("KRYPTOS_PII_MODEL_DIR", REPO_ROOT / "finetune" / "laya-pii"))
+# Resolved once per process: an explicit KRYPTOS_PII_MODEL_DIR, the checkpoint
+# in a repository checkout, or the one 'kryptos-pii-model download' fetched.
+# See kryptos_pii.model for the search order.
+DEFAULT_MODEL_DIR = model_dir()
 DEFAULT_THRESHOLD = 0.5
 DEFAULT_CONTEXT_CHARS = 120
 
@@ -123,7 +117,7 @@ class ModelUnavailable(RuntimeError):
 class _Checkpoint:
     """Loads the checkpoint once per process and scores candidates with it.
 
-    Loading is ~1.6 GB and several seconds, so it happens behind a lock on first
+    Loading is ~850 MB and several seconds, so it happens behind a lock on first
     use and is warmed at startup by the service.
     """
 
@@ -145,8 +139,10 @@ class _Checkpoint:
                 return self._agent
             if not self.available:
                 raise ModelUnavailable(
-                    f"No fine-tuned checkpoint at {self._dir}. Train one with "
-                    "'finetune/train.py', or run with detector_mode=regex."
+                    f"No fine-tuned checkpoint at {self._dir}.\n"
+                    "Fetch the published one with: kryptos-pii-model download\n"
+                    "Or train your own with finetune/train.py, or run with "
+                    "detector_mode=regex, which has materially lower recall."
                 )
             import laya
 

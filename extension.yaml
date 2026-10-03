@@ -9,7 +9,7 @@ description: >-
   Finds personal information in text and removes it before it reaches a model,
   a tool or a log. Regex proposes candidate spans and a fine-tuned LAYA
   classifier decides, in context, which of them are personal. No LLM is called.
-version: 0.1.0
+version: 0.3.0
 category: data-protection
 status: beta
 publisher: kryptos
@@ -39,10 +39,81 @@ integrations:
   - rest_api
   - python_sdk
   - mcp
+  - claude
 
 hosted_supported: true
 local_supported: true
 hybrid_supported: false
+
+# What each operation actually does. Detection is identical in all six -- the
+# same candidates, the same classifier, the same findings. The operation only
+# decides what happens to the text afterwards. The long version, with the
+# trade-offs, is docs/operations.md.
+operation_docs:
+  detect:
+    family: observe
+    summary: Find personal information and report it without changing the text.
+    example_output: Email priya@acme.com, card 4111111111111111
+    reversible: false
+    use_when: You want the findings and will decide what to do yourself.
+    caveat: >-
+      detect defers to the action your installation is configured with, so on an
+      installation set to redact, detect redacts. Use audit when you need a
+      guarantee that nothing changes.
+  audit:
+    family: observe
+    summary: >-
+      Find personal information and never rewrite it, whatever the installation
+      is configured to do. That is the whole difference from detect.
+    example_output: Email priya@acme.com, card 4111111111111111
+    reversible: false
+    use_when: >-
+      The point is the record rather than the result: a corpus scan, a
+      monitor-mode rollout, a compliance sweep that must not mutate what it reads.
+  redact:
+    family: rewrite
+    summary: >-
+      Replace each value with its category. The value is gone but the kind of
+      thing it was is still readable, so the sentence still makes sense.
+    example_output: Email [EMAIL], card [PAYMENT_CARD]
+    reversible: false
+    use_when: >-
+      Something downstream still has to read the text -- usually a model. This is
+      the default, and the right answer for most integrations.
+  mask:
+    family: rewrite
+    summary: >-
+      Replace each value with asterisks, character for character, so the text
+      keeps its original length.
+    example_output: Email **************, card ****************
+    reversible: false
+    use_when: >-
+      The layout matters: a fixed-width export, an aligned table, a diff that has
+      to stay lined up. The cost is that the text no longer says what was removed.
+  tokenize:
+    family: rewrite
+    summary: >-
+      Replace each value with a stable token derived from it by HMAC, so the
+      original can be restored afterwards. The only reversible operation.
+    example_output: Email <EMAIL_8ae616f5f64a>, card <PAYMENT_CARD_1f2cd9a4b7e0>
+    reversible: true
+    use_when: >-
+      The text has to survive a round trip: a model rewrites it and the real
+      values go back into the answer.
+    caveat: >-
+      The hosted service does not return the token-to-value mapping by default,
+      so hosted tokens cannot be reversed. Run locally if you need the round trip.
+  block:
+    family: refuse
+    summary: >-
+      Refuse the text outright when anything is found. There is no transformed
+      content, because the point is that the text does not move.
+    reversible: false
+    use_when: This content must not reach a model, a tool or an external system at all.
+    caveat: >-
+      Clean text still passes -- with nothing found there is nothing to block
+      over. And this is the extension's decision, not the last word: the policy
+      engine combines every extension's decision and takes the strongest.
 
 configuration_schema:
   detector_mode:
@@ -137,17 +208,209 @@ performance:
   typical_latency_ms: 120
   notes: >-
     Latency scales with the number of candidate spans, not with text length.
-    The checkpoint is ~1.6 GB and is loaded once per process at startup.
+    The checkpoint is ~850 MB (bf16, the precision it computes in) and is
+    loaded once per process at startup.
+
+# The ways a customer can consume this extension. The control plane renders its
+# integration documentation from this list and serves the artifacts named here,
+# so a channel that is not declared is a channel that does not exist. Order is
+# the order the switcher shows: easiest first, most private last.
+delivery:
+  - id: hosted_api
+    title: Hosted API
+    summary: >-
+      One HTTP call. Nothing to install, nothing to host. Kryptos runs the
+      detector and the call is authenticated, scoped, metered and audited.
+    execution_mode: hosted_api
+    integration: rest_api
+    requires_api_key: true
+    data_leaves_environment: true
+    privacy: >-
+      Your text is sent to Kryptos over TLS, held in memory for the request and
+      not written to disk or logs.
+    install:
+      - label: Create an API key in the dashboard and export it
+        command: export KRYPTOS_API_KEY=kr_live_xxxxxxxx
+        note: The key needs the pii:redact scope for this call.
+    usage:
+      language: bash
+      code: |
+        curl -X POST $KRYPTOS_URL/api/v1/pii-protection/redact \
+          -H "Authorization: Bearer $KRYPTOS_API_KEY" \
+          -H "content-type: application/json" \
+          -d '{"content": "Call Priya on 9812345678"}'
+    docs: docs/api.md
+
+  - id: python_sdk_hosted
+    title: Python SDK — hosted
+    summary: >-
+      A thin client for the hosted API. One dependency, no model, nothing to
+      download. Install it anywhere a request can be made.
+    execution_mode: hosted_api
+    integration: python_sdk
+    requires_api_key: true
+    data_leaves_environment: true
+    privacy: >-
+      Identical to the hosted API: this package is a client for it. The text
+      goes to Kryptos.
+    install:
+      - label: Download the wheel above, then install it
+        command: pip install ./kryptos_pii_client-0.3.0-py3-none-any.whl
+        note: >-
+          Needs Python 3.10 or newer. Not yet on PyPI, so install the file --
+          once it is published this becomes 'pip install kryptos-pii-client'.
+      - label: Set your API key
+        command: export KRYPTOS_API_KEY=kr_live_xxxxxxxx
+    usage:
+      language: python
+      code: |
+        from kryptos_pii_client import Kryptos
+
+        pii = Kryptos()
+
+        r = pii.redact("Call Priya on 9812345678, email priya@acme.com")
+
+        r.text          # 'Call [PERSON_NAME] on [PHONE], email [EMAIL]'
+        r.reason_codes  # ['PII_EMAIL', 'PII_PERSON_NAME', 'PII_PHONE']
+    artifact:
+      id: python-sdk-hosted
+      filename: kryptos_pii_client-0.3.0-py3-none-any.whl
+      kind: wheel
+      source: sdk/python-hosted/dist/kryptos_pii_client-0.3.0-py3-none-any.whl
+    docs: sdk/python-hosted/README.md
+
+  - id: python_sdk_local
+    title: Python SDK — local
+    summary: >-
+      The detector runs inside your own process. No API key, no network, and the
+      text never leaves the machine. The checkpoint downloads once.
+    execution_mode: local
+    integration: python_sdk
+    requires_api_key: false
+    data_leaves_environment: false
+    privacy: >-
+      Nothing is sent anywhere. The checkpoint, the detection and the token
+      vault all stay in your process.
+    install:
+      - label: Create a Python 3.12 environment
+        command: python3.12 -m venv .venv && source .venv/bin/activate
+        note: >-
+          3.12 or newer is required. The macOS system python3 is 3.9, and the
+          install fails there with 'No matching distribution found'.
+      - label: Download the bundle above, unzip it, and install from it
+        command: pip install --find-links . kryptos-pii-local
+        note: >-
+          The zip holds both Kryptos wheels; --find-links resolves them locally
+          while the ordinary dependencies come from PyPI as usual. Not yet on
+          PyPI, so this is the install path -- once published it becomes
+          'pip install kryptos-pii-local'.
+      - label: Fetch the detection checkpoint, once
+        command: kryptos-pii-model download
+        note: About 850 MB. Cached in ~/.cache/kryptos/pii and reused by every process.
+    usage:
+      language: python
+      code: |
+        from kryptos_pii_local import redact, protect
+
+        r = redact("Call Priya on 9812345678, email priya@acme.com")
+        r.text          # 'Call [PERSON_NAME] on [PHONE], email [EMAIL]'
+
+        # or, with no ceremony
+        protect("Call Priya on 9812345678")
+    artifact:
+      # Both Kryptos wheels in one zip: the SDK cannot install on its own until
+      # the extension package it wraps is on an index.
+      id: python-sdk-local
+      filename: kryptos-pii-local-0.3.0-offline.zip
+      kind: zip
+      source: dist/kryptos-pii-local-0.3.0-offline.zip
+    docs: sdk/python-local/README.md
+
+  - id: claude_plugin
+    title: Claude plugin
+    summary: >-
+      Four tools and a skill for Claude Code, so Claude masks customer data
+      before it reaches a prompt, a commit message or a file. Masks locally by
+      default.
+    execution_mode: local
+    integration: claude
+    requires_api_key: false
+    data_leaves_environment: false
+    privacy: >-
+      In its default local mode nothing leaves the machine. Switch the plugin's
+      mode option to hosted and the text goes to Kryptos instead; results always
+      name which mode answered.
+    install:
+      - label: Install the Python side into the interpreter the plugin will use
+        command: pip install --find-links . kryptos-pii-local mcp && kryptos-pii-model download
+        note: >-
+          From the unzipped local SDK bundle, in a Python 3.12 environment.
+          Remember which interpreter this was -- the plugin asks for it.
+      - label: Add the marketplace in Claude Code
+        command: /plugin marketplace add kryptos/kryptos-pii
+      - label: Install the plugin
+        command: /plugin install kryptos-pii@kryptos
+      - label: Answer the configuration prompts
+        note: >-
+          Point "Python interpreter" at the interpreter you installed into. If
+          that was a virtualenv, give its bin/python, not bare python3.
+    usage:
+      language: text
+      code: |
+        Claude now has four tools and reaches for them on its own:
+
+          pii_redact    'priya@acme.com' -> '[EMAIL]'    the default
+          pii_mask      'priya@acme.com' -> '**************'
+          pii_tokenize  reversible, for a round trip
+          pii_detect    reports what is there, changes nothing
+
+        > Summarise these support tickets for the issue tracker
+
+        Claude redacts the customer data before it writes the issue.
+    artifact:
+      id: claude-plugin
+      filename: kryptos-pii-claude-plugin-0.3.0.zip
+      kind: zip
+      source: dist/kryptos-pii-claude-plugin-0.3.0.zip
+    docs: integrations/claude-plugin/README.md
+    metadata:
+      # What a Claude marketplace entry has to call this plugin. The extension
+      # is 'pii-protection' on the platform and 'kryptos-pii' in Claude; the
+      # control plane generates the marketplace from these rather than guessing.
+      plugin_name: kryptos-pii
+      marketplace_name: kryptos
 
 documentation:
   overview: README.md
+  operations: docs/operations.md
   api: docs/api.md
-  sdk: sdk/python/README.md
-  mcp: integrations/mcp/README.md
+  sdk_hosted: sdk/python-hosted/README.md
+  sdk_local: sdk/python-local/README.md
+  claude_plugin: integrations/claude-plugin/README.md
 
 changelog:
+  - version: 0.3.0
+    date: "2026-10-03"
+    notes: >-
+      The checkpoint ships in bf16, which is the precision it already computed
+      in -- 1.6 GB becomes 843 MB with identical detections on the held-out set
+      (scripts/compare_checkpoints.py reports the comparison). The laya
+      dependency is a range rather than an exact pin, so the package can be
+      co-installed with anything else that uses laya. Prepared for publication
+      to PyPI and the Hugging Face Hub.
+  - version: 0.2.0
+    date: "2026-10-03"
+    notes: >-
+      Makes the SDKs installable. kryptos-pii had no build backend and its
+      detector imported the span proposer from finetune/, so the package built
+      nowhere and would not have run if it had; the proposer is now
+      kryptos_pii.candidates and ships inside the wheel. The local SDK is
+      distributed as a bundle of both wheels, because it depends on kryptos-pii
+      and that is not on an index yet. Also adds the delivery and operation_docs
+      manifest blocks the control plane renders its integration page from.
   - version: 0.1.0
     date: "2026-10-02"
     notes: >-
-      First release as a platform extension: hosted API, Python SDK, local
-      runtime and MCP server over the fine-tuned LAYA detector.
+      First release as a platform extension: hosted API, a hosted Python SDK, a
+      local Python SDK and a Claude Code plugin over the fine-tuned LAYA
+      detector.

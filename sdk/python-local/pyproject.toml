@@ -1,0 +1,25 @@
+[project]
+name = "kryptos-pii-local"
+version = "0.3.0"
+description = "Run Kryptos PII Protection on your own machine. The text never leaves it."
+requires-python = ">=3.12"
+readme = "README.md"
+# The extension itself, which carries the detector and the laya runtime. The
+# checkpoint is not a dependency: it is ~850 MB and is fetched separately with
+# 'kryptos-pii-model download', so installing this package stays quick.
+dependencies = ["kryptos-pii>=0.3.0"]
+
+[project.optional-dependencies]
+# Pulls the checkpoint downloader. Separated so an air-gapped install that
+# copies the checkpoint in by hand does not need a hub client at all.
+download = ["huggingface-hub>=0.23"]
+
+[project.urls]
+Documentation = "https://kryptos.ai/extensions/pii-protection"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["kryptos_pii_local"]

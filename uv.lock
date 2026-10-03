@@ -535,19 +535,18 @@ wheels = [
 
 [[package]]
 name = "kryptos-pii"
-version = "0.1.0"
-source = { virtual = "." }
+version = "0.3.0"
+source = { editable = "." }
 dependencies = [
     { name = "laya", extra = ["serve"] },
 ]
 
 [package.optional-dependencies]
-mcp = [
-    { name = "httpx" },
-    { name = "mcp" },
+download = [
+    { name = "huggingface-hub" },
 ]
-sdk = [
-    { name = "httpx" },
+mcp = [
+    { name = "mcp" },
 ]
 serve = [
     { name = "fastapi" },
@@ -564,14 +563,13 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "fastapi", marker = "extra == 'serve'" },
-    { name = "httpx", marker = "extra == 'mcp'" },
-    { name = "httpx", marker = "extra == 'sdk'" },
-    { name = "laya", extras = ["serve"], specifier = "==0.3.9" },
+    { name = "huggingface-hub", marker = "extra == 'download'", specifier = ">=0.23" },
+    { name = "laya", extras = ["serve"], specifier = ">=0.3.9,<0.4" },
     { name = "mcp", marker = "extra == 'mcp'", specifier = ">=1.2" },
     { name = "pyyaml", marker = "extra == 'serve'" },
     { name = "uvicorn", extras = ["standard"], marker = "extra == 'serve'" },
 ]
-provides-extras = ["serve", "sdk", "mcp"]
+provides-extras = ["serve", "mcp", "download"]
 
 [package.metadata.requires-dev]
 dev = [

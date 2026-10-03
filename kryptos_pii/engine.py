@@ -23,7 +23,7 @@ from kryptos_pii.contract import Decision, ExtensionResult, Finding, Risk
 from kryptos_pii.detector import DEFAULT_THRESHOLD, HIGH_RISK_TYPES, Detection, detect
 
 EXTENSION_NAME = "pii-protection"
-EXTENSION_VERSION = "0.1.0"
+EXTENSION_VERSION = "0.3.0"
 
 OPERATIONS = ("detect", "redact", "mask", "tokenize", "block", "audit")
 

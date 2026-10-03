@@ -26,7 +26,7 @@ Content-Type: application/json
   "transformed_content": "Call [PERSON_NAME] on [PHONE]",
   "reason_codes": ["PII_PERSON_NAME", "PII_PHONE"],
   "extension": "pii-protection",
-  "extension_version": "0.1.0"
+  "extension_version": "0.3.0"
 }
 ```
 

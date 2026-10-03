@@ -1,13 +1,18 @@
 [project]
 name = "kryptos-pii"
-version = "0.1.0"
+version = "0.3.0"
 description = "Kryptos PII Protection: a platform extension. Regex proposes, a fine-tuned LAYA classifier decides."
 requires-python = ">=3.12"
 # The detector needs laya and nothing else. Presidio, spaCy and the OpenAI
 # client went with the three-engine comparison demo; none of them were ever on
 # the extension's code path, and the spaCy model alone was ~600 MB.
 dependencies = [
-    "laya[serve]==0.3.9",  # the "serve" extra pulls in fastapi + uvicorn
+    # A range, not a pin. An exact pin is right for an application and hostile
+    # in a published library: it makes this package unco-installable with
+    # anything else that depends on laya. 0.3.9 is what the checkpoint was
+    # trained and measured against, so that is the floor; 0.4 may move the
+    # inference API, so that is the ceiling.
+    "laya[serve]>=0.3.9,<0.4",  # the "serve" extra pulls in fastapi + uvicorn
 ]
 
 [dependency-groups]
@@ -19,15 +24,29 @@ dev = [
 ]
 
 [project.optional-dependencies]
-# The hosted runtime, the SDK and the Claude integration. The detector itself
+# The hosted runtime and the Claude plugin's MCP server. The detector itself
 # needs only the base dependencies.
 serve = ["fastapi", "uvicorn[standard]", "pyyaml"]
-sdk = ["httpx"]
-mcp = ["mcp>=1.2", "httpx"]
+mcp = ["mcp>=1.2"]  # 1.x (FastMCP) and 2.x (MCPServer) both work
+# The checkpoint downloader. Optional so an air-gapped install that copies the
+# checkpoint in by hand never needs a hub client.
+download = ["huggingface-hub>=0.23"]
 
 [project.scripts]
 kryptos-pii-serve = "kryptos_pii.service:app"
-kryptos-pii-mcp = "integrations.mcp.server:main"
+# Where is the checkpoint, and fetch it. Local execution needs this once.
+kryptos-pii-model = "kryptos_pii.model:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+# Only the package ships. This repository is a workspace as much as a library --
+# finetune/ holds the dataset, the training scripts and the checkpoint;
+# evals/, sdk/, integrations/ and tests/ are their own things -- and without
+# this the build refuses to guess which of them is the distribution.
+packages = ["kryptos_pii"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

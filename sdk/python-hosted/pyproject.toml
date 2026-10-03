@@ -1,0 +1,20 @@
+[project]
+name = "kryptos-pii-client"
+version = "0.3.0"
+description = "Hosted client for the Kryptos PII Protection extension. Sends text to Kryptos; no model, no checkpoint."
+requires-python = ">=3.10"
+readme = "README.md"
+# One dependency on purpose. This package exists to be installable anywhere a
+# request can be made -- a lambda, a sidecar, a CI job -- so it carries no
+# model, no torch and nothing that needs a build step.
+dependencies = ["httpx>=0.27"]
+
+[project.urls]
+Documentation = "https://kryptos.ai/extensions/pii-protection"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["kryptos_pii_client"]

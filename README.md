@@ -19,51 +19,97 @@ measurably weak exactly there — a bare account number after the word `acct`
 scores 0.001, because nothing in the digits is personal and the label is the
 only evidence.
 
-## Four ways to use it
+## Ways to use it
+
+The choice between these is a privacy decision, not a performance one. Each is
+declared in `extension.yaml`, and the Kryptos control plane renders its install
+instructions and serves its download from that declaration.
 
 | | How | Text leaves your environment |
 | --- | --- | --- |
 | **Hosted API** | `POST /api/v1/pii-protection/redact` with a Kryptos API key | yes |
-| **Python SDK** | `Kryptos(api_key=...)` hosted, or `local` in-process | your choice |
+| **`kryptos-pii-client`** | hosted SDK — a thin client, one dependency | yes |
+| **`kryptos-pii-local`** | local SDK — the detector runs in your process | no |
+| **Claude plugin** | four tools and a skill in Claude Code | no, in its default mode |
 | **Local runtime** | `uvicorn kryptos_pii.service:app` in your own cluster | no |
-| **Claude (MCP)** | four tools in Claude Desktop or Claude Code | not in local mode |
 
-All four call the same `kryptos_pii.engine.run`. The adapters translate; they do
-not decide. That is the point of the extension contract — a second detector
+All of them call the same `kryptos_pii.engine.run`. The adapters translate; they
+do not decide. That is the point of the extension contract — a second detector
 hiding behind one of these would be a second thing to audit.
 
 ```python
-from kryptos_pii_sdk import protect
+from kryptos_pii_local import protect
 protect("Call Priya on 9812345678")     # 'Call [PERSON_NAME] on [PHONE]'
 ```
 
+Neither SDK is on PyPI yet, and both ship as downloads from the extension page
+until they are. `scripts/build_artifacts.py` builds them; the local one is a
+bundle of two wheels, because it depends on `kryptos-pii` and that has no index
+to resolve from yet. Python 3.12 or newer for anything local, 3.10 for the
+hosted client.
+
 ## Operations
 
-`detect`, `redact`, `mask`, `tokenize`, `block`, `audit`.
+Six, and the detection is identical in all of them — only what happens to the
+text afterwards differs.
 
-```
-in   Priya Sharma, 9812345678, priya@acme.com, PAN ABCDE1234F, card 4111 1111 1111 1111
-out  [PERSON_NAME], [PHONE], [EMAIL], PAN [GOVERNMENT_ID], card [PAYMENT_CARD]
+| | Result for `Email priya@acme.com` | Reversible |
+| --- | --- | --- |
+| `detect` | unchanged; returns findings | — |
+| `audit` | unchanged, whatever the configuration | — |
+| `redact` | `Email [EMAIL]` | no |
+| `mask` | `Email **************` | no |
+| `tokenize` | `Email <EMAIL_8ae616f5f64a>` | **yes** |
+| `block` | refused | — |
+
+Text with nothing in it always returns `allow`, whatever the operation.
+
+**[docs/operations.md](docs/operations.md)** explains each one, what it costs
+you, and how to choose. Read it before wiring one in — `redact`, `mask` and
+`tokenize` all mean "take the PII out", and which you want depends on
+differences the names do not carry.
+
+## The checkpoint
+
+Local execution needs the fine-tuned checkpoint, which is ~850 MB and therefore
+not inside any wheel:
+
+```bash
+kryptos-pii-model download     # fetch it into ~/.cache/kryptos/pii
+kryptos-pii-model status       # is it here
+kryptos-pii-model path         # where it will be loaded from
 ```
 
-`audit` never rewrites — it records that personal data was present and leaves the
-content alone, so it is safe to turn on in front of live traffic. Text with
-nothing in it always returns `allow`, whatever the operation.
+An explicit `KRYPTOS_PII_MODEL_DIR` wins; otherwise a checkout's
+`finetune/laya-pii` is used, and failing that the download cache.
 
 ## Layout
 
 ```
 extension.yaml          the manifest the Kryptos registry publishes
-kryptos_pii/
+kryptos_pii/            the installable package: everything inference needs
+  candidates.py         how text is split into candidate spans
   detector.py           regex candidates + the fine-tuned classifier
   classify.py           what category a detected span is
   engine.py             findings -> a deterministic decision
   service.py            POST /v1/execute, GET /health
   contract.py           the contract, copied not imported, and version-checked
-sdk/python/             the SDK: hosted and local
-integrations/mcp/       the MCP server for Claude
+  model.py              where the checkpoint is, and how to fetch it
+sdk/python-hosted/      kryptos-pii-client: calls the Kryptos API
+sdk/python-local/       kryptos-pii-local: runs the detector in your process
+integrations/
+  claude-plugin/        the Claude Code plugin, and the MCP server behind it
+scripts/
+  build_artifacts.py    builds every download extension.yaml promises
+  convert_checkpoint.py stores the checkpoint in bf16, the precision it runs in
+  compare_checkpoints.py does a changed checkpoint decide anything differently
+  publish_model.py      uploads the checkpoint to the Hugging Face Hub
+RELEASING.md            how the packages and the checkpoint get published
+docs/operations.md      what each of the six operations does
 tests/                  27 tests, no checkpoint needed
 finetune/               the dataset, training, evaluation and the checkpoint
+                        (common.py is now an alias for kryptos_pii.candidates,
+                        so training scripts import it exactly as before)
 ```
 
 `contract.py` is a deliberate copy of the orchestrator's contract rather than an
@@ -80,12 +126,20 @@ uv run pytest                                   # 27 tests, no model needed
 HF_HUB_OFFLINE=1 uv run python -m uvicorn kryptos_pii.service:app --port 8080
 ```
 
-Deploy with `helm-charts/kryptos` (the `pii` subchart), then register it:
+Deploy with `helm-charts/kryptos` (the `pii` subchart), then build the
+downloads and register everything:
 
 ```bash
+uv run python scripts/build_artifacts.py        # wheels + the plugin archive
+
 kryptos registry publish --manifest extension.yaml \
   --endpoint http://kryptos-pii.kryptos.svc.cluster.local
 ```
+
+Publishing uploads each artifact the manifest declares and pins its sha256, so
+the extension page's download buttons and the Claude marketplace's integrity
+check both describe the bytes that actually shipped. A declared artifact that
+has not been built stops the publish rather than shipping a button that 404s.
 
 ## What it does not do
 

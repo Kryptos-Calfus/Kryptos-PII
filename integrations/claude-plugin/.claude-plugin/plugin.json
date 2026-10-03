@@ -1,0 +1,50 @@
+{
+  "name": "kryptos-pii",
+  "displayName": "Kryptos PII Protection",
+  "version": "0.3.0",
+  "description": "Mask personal information before it reaches a prompt, a file, a commit message or another tool.",
+  "author": { "name": "Kryptos", "url": "https://kryptos.ai" },
+  "homepage": "https://kryptos.ai/extensions/pii-protection",
+  "license": "Apache-2.0",
+  "keywords": ["pii", "privacy", "redaction", "security", "masking"],
+
+  "mcpServers": {
+    "kryptos-pii": {
+      "command": "${user_config.python}",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/server.py"],
+      "env": {
+        "KRYPTOS_PII_MODE": "${user_config.mode}",
+        "KRYPTOS_API_KEY": "${user_config.api_key}",
+        "KRYPTOS_BASE_URL": "${user_config.base_url}"
+      }
+    }
+  },
+
+  "userConfig": {
+    "mode": {
+      "type": "string",
+      "title": "Where masking runs",
+      "description": "local keeps the text on this machine and needs no API key. hosted sends it to Kryptos, where the call is metered and audited.",
+      "options": ["local", "hosted"],
+      "default": "local"
+    },
+    "python": {
+      "type": "string",
+      "title": "Python interpreter",
+      "description": "The interpreter that has kryptos-pii-local (or kryptos-pii-client) and mcp installed. Use a virtualenv's python if you installed there.",
+      "default": "python3"
+    },
+    "api_key": {
+      "type": "string",
+      "title": "Kryptos API key",
+      "description": "Only used in hosted mode. Create one in the Kryptos dashboard under API keys; it needs the pii:* scopes.",
+      "sensitive": true
+    },
+    "base_url": {
+      "type": "string",
+      "title": "Kryptos URL",
+      "description": "Only used in hosted mode. Change this if you run your own Kryptos deployment.",
+      "default": "https://api.kryptos.ai"
+    }
+  }
+}

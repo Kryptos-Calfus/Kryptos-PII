@@ -1,22 +1,20 @@
-"""The PII Protection SDK.
+"""The hosted PII client: Kryptos does the masking.
 
-Two ways to call the same extension, and the choice is a privacy decision rather
-than a performance one:
+    pip install kryptos-pii-client
 
-    from kryptos_pii_sdk import Kryptos
-    pii = Kryptos(api_key=os.environ["KRYPTOS_API_KEY"])
-    pii.redact("Call Priya on 9812345678")       # text goes to Kryptos
+    from kryptos_pii_client import Kryptos
 
-    from kryptos_pii_sdk import local
-    local.redact("Call Priya on 9812345678")     # text stays on this machine
+    pii = Kryptos()                       # reads KRYPTOS_API_KEY
+    pii.redact("Call Priya on 9812345678").text
 
-The hosted client talks to the orchestrator, so the call is authenticated,
-scoped, metered and audited like any other extension execution. The local
-runtime imports the detector directly and needs no API key at all -- section 8
-of CLAUDE.md is explicit that purely local execution must not require one.
+One dependency, no model, no checkpoint, nothing to download. Text is sent to
+the Kryptos control plane over TLS, which authenticates the key, checks its
+scopes, runs the extension, meters the call and writes the audit record.
 
-Both return the same :class:`Result`, so moving between them is a one-line
-change and never a rewrite.
+If the text must not leave the machine, this is the wrong package: install
+``kryptos-pii-local`` instead. The two return the same :class:`Result`, so
+switching is one import line. That is the only difference that matters, and it
+is a privacy decision rather than a performance one.
 """
 
 from __future__ import annotations
@@ -25,14 +23,20 @@ import os
 from dataclasses import dataclass, field
 from typing import Any
 
-__version__ = "0.1.0"
+__version__ = "0.3.0"
 
 DEFAULT_BASE_URL = os.environ.get("KRYPTOS_BASE_URL", "https://api.kryptos.ai")
+EXTENSION = "pii-protection"
 OPERATIONS = ("detect", "redact", "mask", "tokenize", "block", "audit")
 
 
 class PIIError(RuntimeError):
-    """The extension could not reach a decision."""
+    """The extension could not reach a decision.
+
+    ``status`` and ``code`` are set when Kryptos refused the call rather than
+    failing to answer it -- a missing scope, a revoked key, an extension that is
+    not installed. Those are the platform working, not a bug in this client.
+    """
 
     def __init__(self, message: str, *, status: int | None = None, code: str | None = None) -> None:
         super().__init__(message)
@@ -42,6 +46,8 @@ class PIIError(RuntimeError):
 
 @dataclass
 class Finding:
+    """One detected span. The matched text is deliberately absent."""
+
     type: str
     start: int | None = None
     end: int | None = None
@@ -76,8 +82,19 @@ class Result:
         return bool(self.findings)
 
     def detokenize(self, text: str) -> str:
-        """Put the original values back. Only works for a tokenize result whose
-        vault you were given, which hosted calls do not return by default."""
+        """Put the original values back.
+
+        The hosted service does not return the token-to-value mapping by
+        default -- holding a pile of customer plaintext would be a worse
+        liability than the problem this extension solves -- so this works only
+        for a deployment that has explicitly opted in.
+        """
+        if not self.vault:
+            raise PIIError(
+                "This result carries no token mapping, so it cannot be reversed. "
+                "The hosted service does not return the vault by default. Use "
+                "kryptos-pii-local if you need reversible tokenization."
+            )
         for token, original in self.vault.items():
             text = text.replace(token, original)
         return text
@@ -108,9 +125,8 @@ class Result:
 class Kryptos:
     """Hosted execution through the Kryptos control plane.
 
-    The API key authenticates the account; the extension must be installed on it
-    and the key must carry the matching ``pii:<operation>`` scope, or the call is
-    refused. That refusal is the platform working, not a bug in this client.
+    The key must carry the matching ``pii:<operation>`` scope and the extension
+    must be installed on the account, or the call is refused.
     """
 
     def __init__(
@@ -124,8 +140,8 @@ class Kryptos:
         if not key:
             raise PIIError(
                 "No API key. Pass api_key=... or set KRYPTOS_API_KEY. "
-                "For key-free execution that keeps text on this machine, use "
-                "kryptos_pii_sdk.local instead."
+                "For execution that keeps text on this machine and needs no key, "
+                "install kryptos-pii-local instead."
             )
         self._key = key
         self._base = base_url.rstrip("/")
@@ -141,7 +157,7 @@ class Kryptos:
             body["config"] = config
         try:
             response = httpx.post(
-                f"{self._base}/api/v1/pii-protection/{operation}",
+                f"{self._base}/api/v1/{EXTENSION}/{operation}",
                 json=body,
                 headers={"authorization": f"Bearer {self._key}", "content-type": "application/json"},
                 timeout=self._timeout,
@@ -163,54 +179,28 @@ class Kryptos:
         return Result.from_payload(response.json())
 
     def detect(self, content: str, **config: Any) -> Result:
+        """Report what is in the text without changing it."""
         return self._call("detect", content, config)
 
     def redact(self, content: str, **config: Any) -> Result:
+        """Replace personal information with its category, e.g. ``[EMAIL]``."""
         return self._call("redact", content, config)
 
     def mask(self, content: str, **config: Any) -> Result:
+        """Replace personal information with asterisks, preserving length."""
         return self._call("mask", content, config)
 
     def tokenize(self, content: str, **config: Any) -> Result:
+        """Replace personal information with stable, reversible tokens."""
         return self._call("tokenize", content, config)
 
     def block(self, content: str, **config: Any) -> Result:
+        """Refuse the text outright when it carries personal information."""
         return self._call("block", content, config)
 
-
-class _Local:
-    """In-process execution. No network, no API key, no text leaving the host."""
-
-    def _call(self, operation: str, content: str, config: dict[str, Any] | None) -> Result:
-        from kryptos_pii.engine import run
-
-        outcome = run(content, operation=operation, config=config or {})
-        payload = outcome.result.model_dump(mode="json")
-        payload["vault"] = outcome.vault
-        return Result.from_payload(payload)
-
-    def detect(self, content: str, **config: Any) -> Result:
-        return self._call("detect", content, config)
-
-    def redact(self, content: str, **config: Any) -> Result:
-        return self._call("redact", content, config)
-
-    def mask(self, content: str, **config: Any) -> Result:
-        return self._call("mask", content, config)
-
-    def tokenize(self, content: str, **config: Any) -> Result:
-        return self._call("tokenize", content, config)
-
-    def block(self, content: str, **config: Any) -> Result:
-        return self._call("block", content, config)
+    def audit(self, content: str, **config: Any) -> Result:
+        """Record what is in the text, changing nothing."""
+        return self._call("audit", content, config)
 
 
-local = _Local()
-
-
-def protect(text: str, **config: Any) -> str:
-    """The one-liner from CLAUDE.md section 28: redact locally, return the text."""
-    return local.redact(text, **config).text or text
-
-
-__all__ = ["Finding", "Kryptos", "PIIError", "Result", "local", "protect"]
+__all__ = ["DEFAULT_BASE_URL", "Finding", "Kryptos", "PIIError", "Result"]

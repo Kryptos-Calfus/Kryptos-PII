@@ -1,7 +1,7 @@
 # The hosted PII extension runtime.
 #
-# The fine-tuned checkpoint is ~1.6 GB and is deliberately NOT baked into this
-# image. Baking it would make every code change a 1.6 GB push and would tie the
+# The fine-tuned checkpoint is ~850 MB and is deliberately NOT baked into this
+# image. Baking it would make every code change an 850 MB push and would tie the
 # model's release cycle to the service's. It is mounted at runtime instead and
 # located with KRYPTOS_PII_MODEL_DIR; the Helm chart mounts a volume there.
 FROM python:3.12-slim AS base
