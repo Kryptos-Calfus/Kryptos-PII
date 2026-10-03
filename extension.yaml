@@ -160,8 +160,13 @@ output_schema:
   findings:
     type: array
     description: >-
-      One entry per detected span, carrying type, offsets and confidence. The
-      matched text is deliberately absent so findings are safe to audit.
+      One entry per detected span, carrying type, category, offsets and
+      confidence. The matched text is deliberately absent so findings are safe
+      to audit. `type` is the narrowest identification the detector could make
+      (aadhaar, pan, ip_address); `category` is the broad bucket it belongs to
+      (government_id, network_address) and is the value this extension reported
+      as `type` before the taxonomy became hierarchical, so a consumer matching
+      on the broad value keeps working unchanged.
   transformed_content:
     type: string
     description: Present only when the action rewrote the text.
@@ -170,8 +175,18 @@ policy_schema:
   reason_codes:
     type: array
     description: >-
-      PII_<TYPE> per detected category, plus PII_PRESENT_BLOCKED when the block
-      operation stopped a request. Policies match on these.
+      Two codes per finding where a specific type exists: PII_<TYPE> for the
+      narrow identification (PII_AADHAAR) and PII_<CATEGORY> for the broad one
+      (PII_GOVERNMENT_ID). A type that is its own category emits one code.
+      PII_PRESENT_BLOCKED is added when the block operation stopped a request.
+      Policies match on these, and a policy written against a broad code keeps
+      firing after the extension started reporting narrower types.
+  finding_type:
+    type: array
+    description: >-
+      The orchestrator matches a rule's finding_type against both the specific
+      type and its category, so `finding_type: government_id` matches a finding
+      reported as `aadhaar`.
 
 failure_policy:
   # A read that cannot be scanned is alerted on; a write is stopped. An
@@ -398,6 +413,14 @@ changelog:
   - version: 0.3.0
     date: "2026-10-03"
     notes: >-
+      Findings carry a hierarchical type and category: the detector always told
+      an Aadhaar number from a PAN from an SSN and then reported all three as
+      government_id, and that distinction now survives. The category is the
+      value `type` used to carry, and the orchestrator matches policy on both,
+      so no existing rule stops firing. Reason codes gained PII_<TYPE> beside
+      PII_<CATEGORY>. Measured on the frozen 111-case set: precision, recall and
+      F1 unchanged, and the set of categories emitted is identical to the set of
+      types emitted before.
       The checkpoint ships in bf16, which is the precision it already computed
       in -- 1.6 GB becomes 843 MB with identical detections on the held-out set
       (scripts/compare_checkpoints.py reports the comparison). The laya

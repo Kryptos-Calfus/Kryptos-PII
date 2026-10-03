@@ -79,6 +79,10 @@ class Finding(BaseModel):
     model_config = ConfigDict(extra="allow")
 
     type: str
+    # The broad category this type belongs to, and the value this field used to
+    # carry in ``type``. Optional so a result produced before this field
+    # existed still validates.
+    category: str | None = None
     start: int | None = None
     end: int | None = None
     action: Decision = Decision.LOG

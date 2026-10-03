@@ -20,7 +20,8 @@ from dataclasses import dataclass
 from typing import Any
 
 from kryptos_pii.contract import Decision, ExtensionResult, Finding, Risk
-from kryptos_pii.detector import DEFAULT_THRESHOLD, HIGH_RISK_TYPES, Detection, detect
+from kryptos_pii.detector import DEFAULT_THRESHOLD, Detection, detect
+from kryptos_pii.taxonomy import category_of, is_high_risk, reason_codes_for
 
 EXTENSION_NAME = "pii-protection"
 EXTENSION_VERSION = "0.3.0"
@@ -75,7 +76,10 @@ def _token_for(value: str, label: str) -> str:
 def _risk_of(detections: list[Detection]) -> Risk:
     if not detections:
         return Risk.NONE
-    if any(d.type in HIGH_RISK_TYPES for d in detections):
+    # Risk is assessed on the category, so a specific type inherits it: an
+    # 'aadhaar' finding is high risk because 'government_id' is, exactly as it
+    # was when the detector only ever said 'government_id'.
+    if any(is_high_risk(d.type) for d in detections):
         return Risk.HIGH
     return Risk.MEDIUM if len(detections) > 1 else Risk.LOW
 
@@ -172,6 +176,7 @@ def run(
     findings = [
         Finding(
             type=d.type,
+            category=category_of(d.type),
             start=d.start,
             end=d.end,
             action=decision,
@@ -180,7 +185,10 @@ def run(
         )
         for d in detections
     ]
-    reason_codes = sorted({f"PII_{d.type.upper()}" for d in detections})
+    # Both the specific code and its category, so a policy can match
+    # PII_AADHAAR for precision or PII_GOVERNMENT_ID for breadth, and a policy
+    # written before this change keeps firing.
+    reason_codes = sorted({code for d in detections for code in reason_codes_for(d.type)})
     if detections and operation == "block":
         reason_codes.append("PII_PRESENT_BLOCKED")
 

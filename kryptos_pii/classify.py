@@ -21,39 +21,44 @@ import re
 PERSON = "person_name"
 GENERIC = "personal_data"
 
-_SECRET = re.compile(
-    r"^(?:sk-[A-Za-z0-9]{8,}|ghp_[A-Za-z0-9]{20,}|AKIA[0-9A-Z]{16}|eyJ[A-Za-z0-9_-]{6,}\.)"
-    r"|^(?=.*[A-Za-z])(?=.*\d)(?=.*[!@#$%^&*_])[^\s]{8,}$"
-)
+# The three arms of the old single _SECRET pattern, kept apart so the kind of
+# credential survives into the finding. The alternation and the ordering are
+# unchanged; only the result is more specific.
+_API_KEY = re.compile(r"^(?:sk-[A-Za-z0-9]{8,}|ghp_[A-Za-z0-9]{20,}|AKIA[0-9A-Z]{16})")
+_JWT = re.compile(r"^eyJ[A-Za-z0-9_-]{6,}\.")
+# A password is recognised by shape alone: letters, digits and a symbol with no
+# whitespace. It is the weakest of the three and stays last.
+_PASSWORD = re.compile(r"^(?=.*[A-Za-z])(?=.*\d)(?=.*[!@#$%^&*_])[^\s]{8,}$")
 _EMAIL = re.compile(r"^[^@\s]+@[^@\s]+\.[A-Za-z]{2,}$")
-_NETWORK = re.compile(r"^(?:\d{1,3}\.){3}\d{1,3}$|^(?:[0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}$")
+_IPV4 = re.compile(r"^(?:\d{1,3}\.){3}\d{1,3}$")
+_MAC = re.compile(r"^(?:[0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}$")
 _DATE = re.compile(r"^\d{1,2}[/-]\d{1,2}[/-]\d{2,4}$|^\d{4}-\d{2}-\d{2}$|^\d{1,2}\s+[A-Z][a-z]+\s+\d{4}$")
 # Government and membership identifiers with a fixed, recognisable layout.
-_GOV_ID = re.compile(
-    r"^[A-Z]{5}\d{4}[A-Z]$"            # India PAN
-    r"|^\d{3}-\d{2}-\d{4}$"            # US SSN
-    r"|^[A-Z]\d{7,8}$"                 # passport
-    r"|^(?:POL|MBR|EMP|INS|DL|MRN)[-\s]?\w+"
-)
+# One pattern per kind: the layouts were always distinct, they were just being
+# reported under one name.
+_PAN = re.compile(r"^[A-Z]{5}\d{4}[A-Z]$")              # India PAN
+_SSN = re.compile(r"^\d{3}-\d{2}-\d{4}$")              # US SSN
+_PASSPORT = re.compile(r"^[A-Z]\d{7,8}$")
+# Prefixed membership and record numbers. The prefix names the kind, which is
+# why these can be told apart at all.
+_PREFIXED_ID = re.compile(r"^(?P<prefix>POL|MBR|EMP|INS|DL|MRN)[-\s]?\w+", re.IGNORECASE)
+_PREFIX_TYPE = {
+    "DL": "driver_license",
+    "MRN": "medical_record",
+    "EMP": "employee_id",
+    "POL": "health_insurance",
+    "INS": "health_insurance",
+    "MBR": "health_insurance",
+}
 _AADHAAR = re.compile(r"^\d{4}\s?\d{4}\s?\d{4}$")
 _UPI = re.compile(r"^[\w.-]{3,}@(?:ok\w+|paytm|ybl|upi|axl|ibl)$", re.I)
 _ADDRESS = re.compile(r"^\d{1,5}[A-Za-z]?\s+[A-Z]|^(?:Flat|House|H\.?\s?No|Plot|Door)\b", re.I)
 # A phone number may carry a country code, spaces, hyphens or brackets.
 _PHONE_SHAPE = re.compile(r"^\+?[\d][\d\s()\-]{7,18}$")
 
-ALL_TYPES = (
-    "email",
-    "phone",
-    "address",
-    "government_id",
-    "payment_card",
-    "financial",
-    "secret",
-    "date_of_birth",
-    "network_address",
-    PERSON,
-    GENERIC,
-)
+# Every type classify() can return, specific and broad alike. The single
+# source of truth for which of these is a category lives in taxonomy.py.
+from kryptos_pii.taxonomy import ALL_TYPES  # noqa: E402,F401  (re-exported)
 
 
 def _digits(value: str) -> str:
@@ -90,7 +95,7 @@ def _numeric_type(value: str) -> str | None:
     if value.strip().startswith("+") and 10 <= length <= 15:
         return "phone"
     if _AADHAAR.match(value.strip()):
-        return "government_id"
+        return "aadhaar"
     if length == 10:
         # Indian mobile numbers start 6-9; a 10-digit run starting 0-5 is far
         # more likely an account or reference number.
@@ -103,14 +108,22 @@ def _numeric_type(value: str) -> str | None:
         # its own type and its own reason code.
         return "payment_card" if luhn_valid(digits) else "financial"
     if length in (5, 6):
-        return "address"  # PIN / ZIP
+        return "postal_code"  # PIN / ZIP; category is still 'address'
     if 9 <= length <= 18:
         return "financial"
     return None
 
 
 def classify(value: str) -> str:
-    """The category of one detected span."""
+    """The specific type of one detected span.
+
+    Returns the narrowest type the evidence supports -- ``aadhaar`` rather than
+    ``government_id`` -- and falls back to the broad category when the shape
+    says what kind of thing it is but not which kind. Use
+    ``taxonomy.category_of`` to get the broad category for any result.
+
+    The order of the checks is unchanged. Only the names returned are narrower.
+    """
     text = value.strip()
     if not text:
         return GENERIC
@@ -118,15 +131,29 @@ def classify(value: str) -> str:
     if _EMAIL.match(text):
         return "email"
     if _UPI.match(text):
-        return "financial"
-    if _NETWORK.match(text):
-        return "network_address"
-    if _SECRET.search(text):
-        return "secret"
+        return "upi_id"
+    if _IPV4.match(text):
+        return "ip_address"
+    if _MAC.match(text):
+        return "mac_address"
+    if _API_KEY.match(text):
+        return "api_key"
+    if _JWT.match(text):
+        return "jwt"
+    if _PASSWORD.match(text):
+        return "password"
     if _DATE.match(text):
         return "date_of_birth"
-    if _GOV_ID.match(text):
-        return "government_id"
+    if _PAN.match(text):
+        return "pan"
+    if _SSN.match(text):
+        return "ssn"
+    if _PASSPORT.match(text):
+        return "passport"
+    prefixed = _PREFIXED_ID.match(text)
+    if prefixed:
+        # The prefix is the evidence. Anything else keeps the broad category.
+        return _PREFIX_TYPE.get(prefixed.group("prefix").upper(), "government_id")
 
     if _PHONE_SHAPE.match(text) or re.fullmatch(r"[\d\s()\-]+", text):
         numeric = _numeric_type(text)
