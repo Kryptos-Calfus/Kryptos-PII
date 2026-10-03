@@ -55,7 +55,13 @@ def build_args():
     p.add_argument("--lr-head", type=float, default=1e-4)
     p.add_argument("--lr-enc", type=float, default=2e-5)
     p.add_argument("--threshold", type=float, default=0.5, help="production threshold; --sweep reports alternatives")
-    p.add_argument("--out", default=str(OUT_DIR))
+    # Deliberately NOT the live checkpoint. A training run writes somewhere new
+    # by default, because --out used to point at finetune/laya-pii and any run
+    # -- including a 25-example smoke test -- silently replaced the checkpoint
+    # the extension serves. Promoting a run is now a copy you choose to make.
+    p.add_argument("--out", default=str(ROOT / "finetune" / "runs" /
+                                        time.strftime("%Y%m%d-%H%M%S")),
+                   help="where to write the trained checkpoint (default: a fresh runs/ directory)")
     p.add_argument("--no-save", action="store_true",
                    help="skip writing the 1.6 GB checkpoint (sweeps only need the validation score)")
     p.add_argument("--eval-only", nargs="?", const=str(OUT_DIR), default=None)
@@ -63,6 +69,10 @@ def build_args():
     p.add_argument("--mine", action="store_true", help="after training, write hard examples for the next round")
     p.add_argument("--no-hard", action="store_true", help="ignore finetune/hard_examples.json")
     p.add_argument("--errors", type=int, default=20, help="examples printed per error category")
+    p.add_argument("--extra", help="extra training corpus as JSON: "
+                                   "[{text, pii_spans: [[start, end, type], ...]}, ...]")
+    p.add_argument("--base", default="convaiinnovations/laya",
+                   help="base checkpoint to fine-tune from; a local path keeps the run offline")
     p.add_argument("--types", action="store_true",
                    help="train the typed model: LAYA picks person/email/phone/... or not_pii, "
                         "so masking writes [EMAIL] instead of [PII]")
@@ -83,6 +93,18 @@ def datasets(args):
 
     train = [(x["text"], x["pii_spans"]) for x in generate(args.synth, seed=SEED)]
     train += [(x["text"], typed_spans_of(x["text"], x["pii"])) for x in fit_real]
+
+    # An externally prepared corpus, in the same (text, [(start, end, type)])
+    # shape this already uses -- see finetune/nemotron.py. It is additive and
+    # off by default: the file decides nothing about test or val, which stay
+    # exactly as they were so a run with it stays comparable to one without.
+    if args.extra:
+        extra = json.loads(Path(args.extra).read_text())
+        train += [(x["text"], [tuple(s) for s in x["pii_spans"]]) for x in extra]
+        spans = sum(len(x["pii_spans"]) for x in extra)
+        negatives = sum(len(x.get("keep", [])) for x in extra)
+        print(f"extra corpus {Path(args.extra).name}: {len(extra):,} texts, "
+              f"{spans:,} positive spans, {negatives:,} labelled negatives")
 
     if HARD_FILE.exists() and not args.no_hard:
         hard = json.loads(HARD_FILE.read_text())
@@ -201,7 +223,7 @@ def main():
         error_analysis(rows, args.threshold, cand_test, limit=args.errors)
         return
 
-    agent = laya.load("convaiinnovations/laya")
+    agent = laya.load(args.base)
     print(f"\ntrain texts {len(train)} | val texts {len(val)} | test texts {len(test)} (never trained on)")
     print(f"config: layers={args.layers} context={args.context} epochs={args.epochs} synth={args.synth}")
     print(f"\n[CANDIDATE RECALL - TEST]\n  Gold PII spans: {cand_test['gold']}\n  Covered: {cand_test['covered']}"
@@ -277,6 +299,14 @@ def main():
             best = {"f1": vm["f1"], "epoch": epoch,
                     "state": copy.deepcopy({k: v.detach().cpu() for k, v in model.state_dict().items()})}
             print(f"  [epoch {epoch}] best so far, checkpoint kept")
+            # Written now, not only at the end of the run. Holding the best
+            # state in memory until the final line meant an interrupted run --
+            # a lost session, a reboot, a kill -- produced nothing at all, not
+            # even the epoch that had already validated well. An hour of
+            # training should survive losing the process that started it.
+            if not args.no_save:
+                save(agent, best["state"], args.out)
+                print(f"  [epoch {epoch}] written to {args.out}", flush=True)
 
     print(f"\nselected checkpoint: epoch {best['epoch']} (validation piece F1 {best['f1']:.4f})")
     model.load_state_dict(best["state"])
@@ -298,7 +328,11 @@ def main():
     if args.no_save:
         print("\n--no-save: checkpoint not written")
     else:
+        # Usually a rewrite of what the best epoch already wrote. Kept so the
+        # final artefact is written once more after selection, which matters if
+        # a later epoch validated worse and the best state came from earlier.
         save(agent, best["state"], args.out)
+        print(f"checkpoint written to {args.out}")
     if args.mine:
         mine(agent, args, [x for x in load_split()[0]])
     print(f"\n(validation candidate recall {cand_val['recall']:.1%}; selection never saw the test split)")

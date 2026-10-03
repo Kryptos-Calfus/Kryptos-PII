@@ -110,8 +110,12 @@ Read these before trusting it with anything that matters.
 - **Recall is not 1.0.** It misses things. An unlabelled `10.2.3.4` scores
   0.003. Run `finetune/evaluate.py` against your own data before choosing a
   threshold; do not take 0.5 on faith for your domain.
-- **It cannot see what the proposer never proposed.** Most real misses are
-  recall failures upstream, not decisions by this model.
+- **The misses are its own.** On the 111-case held-out set every one of the 9
+  missed values *was* proposed as a candidate and scored below threshold here:
+  three IPv4 addresses, two spelled-out dates, an Indian mobile number, a Tamil
+  name, a postcode and a street address. Raising recall means retraining or
+  moving the threshold, not improving the proposer. It also cannot see what the
+  proposer never offers, but on this set that was not the limiting factor.
 - **Values whose shape is proof should not reach it.** API keys, Luhn-valid card
   numbers and labelled fields (`Aadhaar: …`, `password: …`) are matched
   deterministically in Kryptos and never put to a neural vote. A live credential

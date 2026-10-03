@@ -317,3 +317,73 @@ def test_the_plugin_server_is_where_the_manifest_says_it_is() -> None:
         if arg.startswith("${CLAUDE_PLUGIN_ROOT}"):
             relative = arg.removeprefix("${CLAUDE_PLUGIN_ROOT}/")
             assert (PLUGIN / relative).exists(), f"plugin.json points at a missing {relative}"
+
+
+# --- the Nemotron label map ----------------------------------------------
+
+
+def _nemotron():  # noqa: ANN202 - finetune/ is a flat module dir, imported late
+    sys.path.insert(0, str(ROOT / "finetune"))
+    import nemotron
+
+    return nemotron
+
+
+def test_every_label_lands_in_exactly_one_bucket() -> None:
+    """A label in two buckets trains as both positive and negative."""
+    n = _nemotron()
+    buckets = [set(n.ADOPT), set(n.NEGATIVE), n.SENSITIVE_LABELS, set(n.SKIP)]
+
+    for i, a in enumerate(buckets):
+        for b in buckets[i + 1 :]:
+            assert not (a & b), f"label in two buckets: {sorted(a & b)}"
+
+
+def test_adopted_labels_map_onto_types_the_detector_uses() -> None:
+    """A typo here would train a category nothing downstream can act on."""
+    n = _nemotron()
+    known = {
+        "person_name", "email", "phone", "address", "date_of_birth",
+        "government_id", "financial", "payment_card", "secret",
+        "network_address", "personal_data",
+    }
+
+    unknown = {t for t in n.ADOPT.values() if t not in known}
+    assert not unknown, f"ADOPT maps to types the taxonomy does not have: {unknown}"
+
+
+def test_the_categories_our_detector_confuses_are_trained_as_negatives() -> None:
+    """The measured false positives are company and place names. If these drift
+    to the positive side the retrain makes precision worse, not better."""
+    n = _nemotron()
+
+    for label in ("company_name", "city", "state", "country", "occupation"):
+        assert label in n.NEGATIVE, f"{label} must stay a hard negative"
+        assert label not in n.ADOPT
+
+
+def test_conversion_keeps_offsets_that_resolve_and_drops_the_rest() -> None:
+    """Offsets are trusted only when they still point at the stated value."""
+    n = _nemotron()
+    text = "Call Priya at ACME Corp on 555-0100."
+
+    good = n.convert_row({
+        "text": text,
+        "spans": [
+            {"start": 5, "end": 10, "text": "Priya", "label": "first_name"},
+            {"start": 14, "end": 23, "text": "ACME Corp", "label": "company_name"},
+            {"start": 999, "end": 1004, "text": "bogus", "label": "first_name"},
+            {"start": 0, "end": 4, "text": "WRONG", "label": "first_name"},
+        ],
+    })
+
+    assert good["pii_spans"] == [(5, 10, "person_name")], "only resolving positives survive"
+    assert good["keep"] == ["ACME Corp"], "the company name becomes a hard negative"
+
+
+def test_a_row_with_nothing_mappable_is_dropped() -> None:
+    n = _nemotron()
+
+    assert n.convert_row({"text": "Posted at 10:30 AM.",
+                          "spans": [{"start": 10, "end": 18, "text": "10:30 AM", "label": "time"}]}) is None
+    assert n.convert_row({"text": "", "spans": []}) is None
