@@ -4,13 +4,32 @@ version = "0.3.0"
 description = "Hosted client for the Kryptos PII Protection extension. Sends text to Kryptos; no model, no checkpoint."
 requires-python = ">=3.10"
 readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+authors = [{ name = "Kryptos" }]
+keywords = ["pii", "privacy", "redaction", "anonymization", "security", "llm"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Information Technology",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Security",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
 # One dependency on purpose. This package exists to be installable anywhere a
 # request can be made -- a lambda, a sidecar, a CI job -- so it carries no
 # model, no torch and nothing that needs a build step.
 dependencies = ["httpx>=0.27"]
 
 [project.urls]
-Documentation = "https://kryptos.ai/extensions/pii-protection"
+Documentation = "https://github.com/Kryptos-Calfus/Kryptos-PII#readme"
+Repository = "https://github.com/Kryptos-Calfus/Kryptos-PII"
+Issues = "https://github.com/Kryptos-Calfus/Kryptos-PII/issues"
 
 [build-system]
 requires = ["hatchling"]

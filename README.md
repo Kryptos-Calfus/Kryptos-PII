@@ -64,7 +64,7 @@ text afterwards differs.
 
 Text with nothing in it always returns `allow`, whatever the operation.
 
-**[docs/operations.md](docs/operations.md)** explains each one, what it costs
+**[docs/operations.md](https://github.com/Kryptos-Calfus/Kryptos-PII/blob/main/docs/operations.md)** explains each one, what it costs
 you, and how to choose. Read it before wiring one in — `redact`, `mask` and
 `tokenize` all mean "take the PII out", and which you want depends on
 differences the names do not carry.

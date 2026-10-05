@@ -4,6 +4,21 @@ version = "0.3.0"
 description = "Run Kryptos PII Protection on your own machine. The text never leaves it."
 requires-python = ">=3.12"
 readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+authors = [{ name = "Kryptos" }]
+keywords = ["pii", "privacy", "redaction", "anonymization", "security", "llm"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Information Technology",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Security",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
 # The extension itself, which carries the detector and the laya runtime. The
 # checkpoint is not a dependency: it is ~850 MB and is fetched separately with
 # 'kryptos-pii-model download', so installing this package stays quick.
@@ -15,7 +30,9 @@ dependencies = ["kryptos-pii>=0.3.0"]
 download = ["huggingface-hub>=0.23"]
 
 [project.urls]
-Documentation = "https://kryptos.ai/extensions/pii-protection"
+Documentation = "https://github.com/Kryptos-Calfus/Kryptos-PII#readme"
+Repository = "https://github.com/Kryptos-Calfus/Kryptos-PII"
+Issues = "https://github.com/Kryptos-Calfus/Kryptos-PII/issues"
 
 [build-system]
 requires = ["hatchling"]

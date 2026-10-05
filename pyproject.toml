@@ -2,7 +2,23 @@
 name = "kryptos-pii"
 version = "0.3.0"
 description = "Kryptos PII Protection: a platform extension. Regex proposes, a fine-tuned LAYA classifier decides."
+readme = "README.md"
 requires-python = ">=3.12"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+authors = [{ name = "Kryptos" }]
+keywords = ["pii", "privacy", "redaction", "anonymization", "security", "llm", "ai-security"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Information Technology",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Security",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
 # The detector needs laya and nothing else. Presidio, spaCy and the OpenAI
 # client went with the three-engine comparison demo; none of them were ever on
 # the extension's code path, and the spaCy model alone was ~600 MB.
@@ -15,12 +31,19 @@ dependencies = [
     "laya[serve]>=0.3.9,<0.4",  # the "serve" extra pulls in fastapi + uvicorn
 ]
 
+[project.urls]
+Documentation = "https://github.com/Kryptos-Calfus/Kryptos-PII#readme"
+Repository = "https://github.com/Kryptos-Calfus/Kryptos-PII"
+Issues = "https://github.com/Kryptos-Calfus/Kryptos-PII/issues"
+
 [dependency-groups]
 dev = [
     "pytest>=8.0",
     # The test suite reads extension.yaml to check the manifest against the
     # engine. Declared rather than relied on transitively.
     "pyyaml>=6",
+    # Checks and uploads the distributions. See RELEASING.md.
+    "twine>=5",
 ]
 
 [project.optional-dependencies]
@@ -33,13 +56,27 @@ mcp = ["mcp>=1.2"]  # 1.x (FastMCP) and 2.x (MCPServer) both work
 download = ["huggingface-hub>=0.23"]
 
 [project.scripts]
-kryptos-pii-serve = "kryptos_pii.service:app"
+kryptos-pii-serve = "kryptos_pii.service:main"
 # Where is the checkpoint, and fetch it. Local execution needs this once.
 kryptos-pii-model = "kryptos_pii.model:main"
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.sdist]
+# The sdist is the source of this package, not a snapshot of the workspace.
+# Hatchling's default is every file git tracks, which here meant the training
+# scripts, the held-out test set, the release runbook and both SDKs -- a
+# private repository published through the back door by anyone running
+# 'uv build --sdist'. List what belongs in the distribution instead.
+# Leading slashes anchor to the project root. Without them "README.md" also
+# matches the model card and the plugin's README four directories down.
+include = [
+    "/kryptos_pii",
+    "/README.md",
+    "/LICENSE",
+]
 
 [tool.hatch.build.targets.wheel]
 # Only the package ships. This repository is a workspace as much as a library --

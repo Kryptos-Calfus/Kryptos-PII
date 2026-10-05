@@ -39,7 +39,7 @@ duration of the request and is not written to disk or logs; findings carry
 offsets and types, never the matched values.
 
 If the text must not leave your environment at all, this is the wrong package —
-install [`kryptos-pii-local`](../python-local/README.md), which runs the detector
+install [`kryptos-pii-local`](https://pypi.org/project/kryptos-pii-local/), which runs the detector
 in your own process and needs no key. Both return the same `Result`, so
 switching is one import line.
 
@@ -64,7 +64,7 @@ the text next — usually a model — can still work with it.
 configured with, so on an installation set to redact, `detect` redacts. Use
 `audit` when you need a guarantee that nothing changes.
 
-Full explanation of all six, with the trade-offs: **[docs/operations.md](../../docs/operations.md)**.
+Full explanation of all six, with the trade-offs: **[docs/operations.md](https://github.com/Kryptos-Calfus/Kryptos-PII/blob/main/docs/operations.md)**.
 
 ### tokenize is not reversible here by default
 

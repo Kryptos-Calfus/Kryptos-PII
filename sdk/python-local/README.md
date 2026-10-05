@@ -92,7 +92,7 @@ the text next can still work with it.
 configuration set to redact, `detect` redacts. Use `audit` when you need a
 guarantee that nothing changes.
 
-Full explanation of all six, with the trade-offs: **[docs/operations.md](../../docs/operations.md)**.
+Full explanation of all six, with the trade-offs: **[docs/operations.md](https://github.com/Kryptos-Calfus/Kryptos-PII/blob/main/docs/operations.md)**.
 
 ### The round trip
 
@@ -134,7 +134,7 @@ undo the work.
 
 If you would rather Kryptos did the masking — nothing to download, calls metered
 and audited in your dashboard — install
-[`kryptos-pii-client`](../python-hosted/README.md). Both packages return the same
+[`kryptos-pii-client`](https://pypi.org/project/kryptos-pii-client/). Both packages return the same
 `Result`, so switching is one import line.
 
 The difference is not performance. It is where the text goes.

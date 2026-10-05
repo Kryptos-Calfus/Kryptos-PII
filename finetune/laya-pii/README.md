@@ -17,7 +17,9 @@ language:
 
 A fine-tuned LAYA classifier that decides, in context, whether a span of text is
 personal information. It is the detector behind
-[Kryptos PII Protection](https://kryptos.ai/extensions/pii-protection).
+Kryptos PII Protection. The code that proposes spans for it and reads its
+scores is in
+[Kryptos-Calfus/Kryptos-PII](https://github.com/Kryptos-Calfus/Kryptos-PII).
 
 It answers one question per candidate span:
 

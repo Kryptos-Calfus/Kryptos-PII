@@ -19,7 +19,14 @@ Checked available on 2026-10-03, not yet reserved:
 | PyPI | `kryptos-pii`, `kryptos-pii-local`, `kryptos-pii-client`, `kryptos` |
 | Hub | `kryptos/laya-pii` (the `kryptos` org does not exist yet) |
 
-The names are the perishable part. Reserving them costs one upload each.
+Re-checked 2026-10-05: all four PyPI names still return 404, and the Hub org is
+still unregistered. The names are the perishable part. Reserving them costs one
+upload each.
+
+**Create the Hub org before step 1.** `DEFAULT_REPO` in `kryptos_pii/model.py`
+is `kryptos/laya-pii`; push without the org and the weights land under your
+personal namespace while every installed copy of `kryptos-pii-model download`
+keeps asking for an id that does not exist.
 
 ## 1. The checkpoint
 
@@ -51,23 +58,45 @@ the published id, and drop the "not on the Hub yet" caveats from the READMEs.
 ## 2. The packages
 
 Three distributions, in dependency order — `kryptos-pii-local` is unusable until
-`kryptos-pii` is on the index:
+`kryptos-pii` is on the index.
+
+Build them into a directory of their own. `scripts/build_artifacts.py` is for
+the manifest's download channels, not for PyPI: it stages the `kryptos-pii` and
+`kryptos-pii-local` wheels inside `dist/_bundle/`, zips them into the offline
+bundle and deletes the staging directory, so after it runs there is no loose
+wheel for twine to check.
 
 ```bash
-python scripts/build_artifacts.py       # builds all of them
+rm -rf dist/pypi
+for pkg in . sdk/python-hosted sdk/python-local; do
+  uv build --wheel --sdist --out-dir dist/pypi "$pkg"
+done
 
-python -m twine check dist/*.whl sdk/*/dist/*.whl
+python -m twine check dist/pypi/*      # twine is in the dev group
+```
 
-# TestPyPI first. It is free and catches a broken README or classifier.
-python -m twine upload --repository testpypi <the kryptos-pii wheel>
+TestPyPI first. It is free, it catches a broken README or classifier, and its
+namespace is separate so nothing you do there spends a real name:
+
+```bash
+python -m twine upload --repository testpypi dist/pypi/*
 pip install --index-url https://test.pypi.org/simple/ \
   --extra-index-url https://pypi.org/simple kryptos-pii
-
-# Then, in order:
-python -m twine upload <kryptos-pii wheel>
-python -m twine upload <kryptos-pii-client wheel>
-python -m twine upload <kryptos-pii-local wheel>
 ```
+
+Then the real index, in this order — uploading `kryptos-pii-local` before
+`kryptos-pii` publishes a package that cannot resolve:
+
+```bash
+python -m twine upload dist/pypi/kryptos_pii-0.3.0*
+python -m twine upload dist/pypi/kryptos_pii_client-0.3.0*
+python -m twine upload dist/pypi/kryptos_pii_local-0.3.0*
+```
+
+Authenticate with an API token, not a password: `__token__` as the username and
+a `pypi-…` token as the password, or put it in `~/.pypirc`. Scope the first
+token to the whole account, because a project-scoped token cannot create a
+project that does not exist yet; replace it with per-project tokens afterwards.
 
 Check from a clean 3.12 environment on a machine that has never seen this repo:
 
@@ -104,7 +133,7 @@ test suite checks they agree.
 ## Before any of it
 
 ```bash
-pytest                                   # 46 tests, no checkpoint needed
+pytest                                   # 95 tests, no checkpoint needed
 python scripts/build_artifacts.py        # everything the manifest promises
 claude plugin validate ./integrations/claude-plugin
 ```

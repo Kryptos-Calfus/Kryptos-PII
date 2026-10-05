@@ -19,6 +19,7 @@ plaintext would be a worse liability than the problem it solves.
 from __future__ import annotations
 
 import os
+import sys
 from contextlib import asynccontextmanager
 from typing import Any
 
@@ -131,3 +132,63 @@ def health() -> HealthReport:
         model_loaded=ready,
         detail=getattr(app.state, "model_error", None),
     )
+
+
+def main(argv: list[str] | None = None) -> int:
+    """``kryptos-pii-serve``: run this service.
+
+    The entry point is this function and not ``app``. A console script is
+    invoked with no arguments, and ``app`` is an ASGI application whose
+    ``__call__`` wants ``(scope, receive, send)`` -- pointing the script at it
+    produced a TypeError before anything bound a port.
+
+    Defaults match the Dockerfile's port and nothing else about it. The
+    container passes ``--host 0.0.0.0`` explicitly because it means to; a bare
+    ``kryptos-pii-serve`` on a laptop binds loopback, because a PII endpoint
+    that silently accepts traffic from the local network is not a default worth
+    having.
+    """
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        prog="kryptos-pii-serve",
+        description="Run the Kryptos PII Protection extension runtime.",
+    )
+    parser.add_argument(
+        "--host",
+        default=os.environ.get("KRYPTOS_PII_HOST", "127.0.0.1"),
+        help="Interface to bind (default: 127.0.0.1)",
+    )
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=int(os.environ.get("KRYPTOS_PII_PORT", "8080")),
+        help="Port to listen on (default: 8080)",
+    )
+    parser.add_argument(
+        "--log-level",
+        default="info",
+        choices=["critical", "error", "warning", "info", "debug", "trace"],
+        help="uvicorn log level (default: info)",
+    )
+    args = parser.parse_args(argv)
+
+    try:
+        import uvicorn
+    except ImportError:
+        print(
+            "kryptos-pii-serve needs a web server, which the base install omits.\n"
+            "Install it with: pip install 'kryptos-pii[serve]'",
+            file=sys.stderr,
+        )
+        return 1
+
+    # The app object rather than an import string: this process serves it, and
+    # the string form exists for multi-worker reloading that a single-process
+    # entry point does not do.
+    uvicorn.run(app, host=args.host, port=args.port, log_level=args.log_level)
+    return 0
+
+
+if __name__ == "__main__":  # pragma: no cover
+    raise SystemExit(main())
