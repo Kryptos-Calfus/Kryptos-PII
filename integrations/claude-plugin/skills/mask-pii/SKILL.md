@@ -9,6 +9,19 @@ Four tools, backed by a detector that runs where the plugin is configured to run
 it. Detection is identical in all four; the tool only decides what happens to
 the text.
 
+## What these tools are not
+
+They are **not** what keeps personal information out of the model's input. They
+cannot be: by the time you can call a tool, you have already read the prompt.
+
+That job belongs to the plugin's `UserPromptSubmit` hook, which inspects every
+prompt before the model receives it and blocks the ones carrying PII. It runs
+whether or not you do anything, and you cannot invoke it.
+
+These tools are for the text that arrives by every other route — a file you
+read, a command's output, a tool result, something you are about to write into
+a commit message or an issue. Use them there.
+
 ## Which tool
 
 | Tool | Result | Use it when |

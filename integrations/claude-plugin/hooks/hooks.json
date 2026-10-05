@@ -1,0 +1,17 @@
+{
+  "description": "Blocks a prompt carrying personal information before it reaches the model. Detection runs locally; nothing is sent to Kryptos.",
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh",
+            "args": ["${CLAUDE_PLUGIN_ROOT}/hooks/precheck.sh"],
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}

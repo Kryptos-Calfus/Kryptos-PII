@@ -6,7 +6,7 @@
     {
       "name": "kryptos-pii",
       "source": ".",
-      "description": "Mask personal information before it reaches a prompt, a file, a commit message or another tool.",
+      "description": "Blocks prompts carrying personal information before the model receives them, and gives Claude tools to mask PII in everything else.",
       "category": "security"
     }
   ]

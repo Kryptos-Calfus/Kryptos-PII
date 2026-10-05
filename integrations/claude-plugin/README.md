@@ -1,7 +1,54 @@
 # Kryptos PII Protection — Claude plugin
 
-Gives Claude four tools so it can strip personal information before text reaches
-a prompt, a file, a commit message or another tool.
+Two layers, which do different jobs and are worth keeping straight.
+
+## 1. The pre-model hook — automatic, not optional
+
+A `UserPromptSubmit` hook inspects **every prompt before the model receives it**.
+If the prompt carries personal information, the prompt is **blocked**: it is
+never sent, and you are shown a redacted copy to send instead.
+
+```text
+you type a prompt
+      |
+      v
+UserPromptSubmit hook  ──>  kryptos_pii_local.redact()   (this machine, no network)
+      |
+      +-- PII found      -> BLOCKED. The model receives nothing.
+      +-- clean          -> the prompt proceeds, byte for byte unchanged
+      +-- detector broke -> BLOCKED. Fail closed, with a fix in the message.
+```
+
+Claude cannot switch this off, skip it or be talked out of it — it runs in a
+subprocess before the model is called at all.
+
+**Why it blocks instead of cleaning the prompt in place.** `UserPromptSubmit`
+cannot modify a prompt; a hook may allow, append context, or block. So the only
+way to keep the values away from the model is not to send the prompt. That is
+the stronger guarantee anyway: there is no rewritten payload to get subtly
+wrong, and no path where a half-redacted prompt still goes out.
+
+Diagnostics, when you want them, record the **sanitized** prompt and the finding
+types — never the raw prompt and never a matched value:
+
+```bash
+export KRYPTOS_PII_HOOK_LOG=~/kryptos-hook.jsonl
+```
+
+Monitor mode, to see what it would do without stopping anything:
+
+```bash
+export KRYPTOS_PII_HOOK_ENFORCE=false
+```
+
+## 2. The four tools — for everything else
+
+The hook protects the prompt. These protect text that reaches Claude by any
+other route: a file it read, a command's output, a tool result, something it is
+about to put in a commit message or an issue.
+
+They are **not** pre-model protection and the skill says so. By the time a tool
+can run, the model has read the prompt.
 
 | Tool | What it does |
 | --- | --- |
@@ -42,8 +89,21 @@ from the Hugging Face Hub. No account and no API key are needed for either step.
 For hosted masking instead, `pip install kryptos-pii-client mcp` — no checkpoint
 to download.
 
-Note the interpreter you used (`~/.kryptos-pii/bin/python` above). Step 3 asks
-for it, and pointing the plugin at the wrong one is the usual failure.
+Note the interpreter you used. Step 3 asks for it, and pointing the plugin at
+the wrong one is the usual failure.
+
+`~/.kryptos-pii/bin/python` is also where the **hook** looks by default, so
+using that path means the hook needs no configuration at all. Anywhere else,
+tell it where to look:
+
+```bash
+export KRYPTOS_PII_PYTHON=/path/to/your/venv/bin/python
+```
+
+The hook tries `$KRYPTOS_PII_PYTHON`, then `~/.kryptos-pii/bin/python`, then
+`python3`, and uses the first that can actually import the SDK. If none can, it
+blocks the prompt and tells you how to fix it — it does not let the prompt
+through unchecked.
 
 An air-gapped machine can install the same two wheels from the offline bundle on
 the extension page with `pip install --find-links . kryptos-pii-local mcp`, and
