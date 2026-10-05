@@ -16,12 +16,28 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Response
 from fastapi.responses import JSONResponse, StreamingResponse
 
 app = FastAPI(docs_url=None, redoc_url=None)
 
 RECEIVED: list[dict[str, Any]] = []
+
+
+@app.post("/v1/messages/gzip")
+async def gzipped(request: Request) -> Any:
+    """Answers gzip-encoded, like the real API does.
+
+    Exists because a mock that never compresses hid a real bug: the gateway
+    relays the raw (still-compressed) body, and dropping content-encoding left
+    the client decoding gzip as UTF-8.
+    """
+    import gzip
+
+    RECEIVED.append({"raw": (await request.body()).decode("utf-8", "replace"), "json": None, "headers": {}})
+    body = gzip.compress(json.dumps({"type": "message", "content": [{"type": "text", "text": "gzipped reply"}]}).encode())
+    return Response(content=body, media_type="application/json",
+                    headers={"content-encoding": "gzip", "content-length": str(len(body))})
 
 
 @app.get("/__received")

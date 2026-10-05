@@ -415,3 +415,26 @@ def test_health_reports_the_scope_it_actually_covers(stack: Stack) -> None:
     body = httpx.get(f"{stack.base}/kryptos/health", timeout=30).json()
     assert body["status"] == "ok"
     assert body["redacts"] == "latest user message, text blocks only"
+
+
+@needs_stack
+def test_a_compressed_upstream_response_survives_the_proxy(stack: Stack) -> None:
+    """Regression: the gateway relays the raw body, so content-encoding has to
+    travel with it.
+
+    Stripping that header handed Claude Code gzip bytes it believed were plain
+    text, and it died with "JSON Parse error: Unrecognized token". The mock did
+    not compress, so only the live API caught it. Now the mock can.
+    """
+    import httpx
+
+    response = httpx.post(
+        f"{stack.base}/v1/messages/gzip",
+        json={"model": "m", "max_tokens": 8, "messages": [{"role": "user", "content": "hi"}]},
+        headers={"x-api-key": "k", "accept-encoding": "gzip"},
+        timeout=60,
+    )
+    assert response.status_code == 200
+    # httpx decodes using content-encoding. If the gateway dropped the header
+    # this raises or yields mojibake instead of JSON.
+    assert response.json()["content"][0]["text"] == "gzipped reply"
