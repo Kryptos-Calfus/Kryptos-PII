@@ -99,6 +99,61 @@ def block(message: str, **diagnostics: Any) -> None:
     _emit({"decision": "block", "reason": message})
 
 
+# Where the prompt lives in the event, most current first.
+#
+# ``prompt`` is what Claude Code sends; the schema for this event is
+# ``{hook_event_name, prompt, source, ...}``. ``user_input`` is accepted because
+# the published hook documentation named that field, so a build matching the
+# docs rather than the binary stays protected rather than silently unprotected.
+PROMPT_FIELDS = ("prompt", "user_input")
+
+
+def prompt_from(event: dict[str, Any]) -> str:
+    """The submitted prompt, or a block if the event does not contain one.
+
+    The distinction this draws is the one that let raw PII through before: a
+    *missing* field and an *empty* prompt are not the same thing. Reading an
+    unknown payload with ``.get()`` turns "I do not understand this event" into
+    "the user submitted nothing", and the second is allowed. So an event with
+    no recognised prompt field is a block -- if the shape changes under us
+    again, prompts stop rather than flow unchecked.
+    """
+    for field in PROMPT_FIELDS:
+        if field not in event:
+            continue
+        value = event[field]
+        if not isinstance(value, str):
+            block(
+                "Kryptos PII protection could not read the prompt, so it was "
+                "not sent.\n"
+                "\n"
+                f"  the '{field}' field is {type(value).__name__}, not a string\n"
+                "\n"
+                "This is a plugin bug. Report it with your Claude Code version.",
+                error="prompt_field_wrong_type",
+                field=field,
+                field_type=type(value).__name__,
+            )
+        return value
+
+    block(
+        "Kryptos PII protection could not find the prompt in this event, so it "
+        "was not sent.\n"
+        "\n"
+        f"  looked for: {', '.join(PROMPT_FIELDS)}\n"
+        f"  the event carried: {', '.join(sorted(event)) or '(nothing)'}\n"
+        "\n"
+        "Claude Code may have changed the hook payload. The prompt was held "
+        "back rather than sent unchecked. Please report this with your Claude "
+        "Code version.",
+        error="no_prompt_field",
+        # The keys only. Their values are the prompt, which is the thing we
+        # are refusing to leak.
+        event_keys=sorted(event),
+    )
+    raise AssertionError("unreachable: block() exits")  # pragma: no cover
+
+
 def _sdk() -> Any:
     """The local detector, or a block explaining how to install it."""
     try:
@@ -134,10 +189,12 @@ def main() -> int:
             error="unparseable_event",
         )
 
-    prompt = event.get("user_input") or ""
+    prompt = prompt_from(event)
+
     if not prompt.strip():
-        # Nothing to inspect. An empty prompt cannot carry PII.
-        allow("empty prompt")
+        # The field was there and held nothing. An empty prompt cannot carry
+        # PII, and this is the only case that is allowed without inspection.
+        allow("empty prompt", found=0)
 
     sdk = _sdk()
 

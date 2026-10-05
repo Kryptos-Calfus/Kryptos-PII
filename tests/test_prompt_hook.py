@@ -92,12 +92,32 @@ RAW_VALUES = (
 CLEAN_PROMPT = "Refactor the retry loop in engine.py to use exponential backoff."
 
 
+# Captured from a real `claude -p` run against a throwaway UserPromptSubmit
+# hook, not transcribed from the documentation. That distinction is the whole
+# reason this fixture exists: the published docs name the field `user_input`,
+# Claude Code sends `prompt`, and a suite built on the documented shape passed
+# every test while the hook let raw PII through to the model.
+def event_fixture(prompt: str) -> dict:
+    return {
+        "session_id": "42a010e9-d3f3-4246-a35b-27acdb7072ff",
+        "transcript_path": str(REPO / "transcript.jsonl"),
+        "cwd": str(REPO),
+        "prompt_id": "a03cdde8-7f8a-4163-85a3-13856a426eb8",
+        "permission_mode": "default",
+        "hook_event_name": "UserPromptSubmit",
+        "prompt": prompt,
+        "source": "user",
+    }
+
+
 def run_hook(
     prompt: str,
     *,
     hook: Path | None = None,
     env: dict[str, str] | None = None,
     python: str | None = None,
+    field: str = "prompt",
+    extra_event: dict | None = None,
 ) -> dict:
     """Invoke the hook as Claude Code does and return its decision.
 
@@ -105,13 +125,9 @@ def run_hook(
     prompt through: silence on stdout, because anything printed there would be
     injected into the model's context.
     """
-    event = {
-        "session_id": "test",
-        "hook_event_name": "UserPromptSubmit",
-        "user_input": prompt,
-        "turn_number": 1,
-        "cwd": str(REPO),
-    }
+    event = {**event_fixture(prompt), **(extra_event or {})}
+    if field != "prompt":
+        event[field] = event.pop("prompt")
     proc = subprocess.run(
         [python or PYTHON, str(hook or REPO_HOOK)],
         input=json.dumps(event),
@@ -273,3 +289,83 @@ def test_the_installed_plugin_registers_the_hook_on_the_right_event() -> None:
     # cannot split the command into pieces.
     invocation = " ".join([entry["command"], *entry.get("args", [])])
     assert invocation.endswith("hooks/precheck.sh"), invocation
+
+
+# --- the payload shape itself --------------------------------------------
+#
+# These exist because the hook once read a field Claude Code does not send.
+# Every prompt looked empty, every prompt was allowed, and the suite passed:
+# the tests fed the same wrong field the code read. What was missing was any
+# test that the hook understands the shape it is actually given.
+
+
+@needs_sdk
+def test_the_real_prompt_field_with_pii_is_blocked() -> None:
+    """The exact event Claude Code sends, with PII in it."""
+    decision = run_hook(SENSITIVE_PROMPT, field="prompt")
+    assert decision.get("decision") == "block"
+    assert model_bound_text(decision, SENSITIVE_PROMPT) == ""
+
+
+@needs_sdk
+def test_the_real_prompt_field_without_pii_is_allowed() -> None:
+    decision = run_hook(CLEAN_PROMPT, field="prompt")
+    assert decision == {}
+    assert model_bound_text(decision, CLEAN_PROMPT) == CLEAN_PROMPT
+
+
+@needs_sdk
+def test_the_legacy_user_input_field_still_works() -> None:
+    """Kept so a build matching the documentation stays protected rather than
+    silently unprotected."""
+    decision = run_hook(SENSITIVE_PROMPT, field="user_input")
+    assert decision.get("decision") == "block"
+
+
+@needs_sdk
+def test_an_event_with_no_recognised_prompt_field_blocks() -> None:
+    """The regression for the actual bug.
+
+    A missing field must not read as an empty prompt. If Claude Code renames
+    the field again, prompts stop; they do not flow unchecked.
+    """
+    event = {"hook_event_name": "UserPromptSubmit", "source": "user"}
+    proc = subprocess.run(
+        [PYTHON, str(REPO_HOOK)],
+        input=json.dumps(event),
+        capture_output=True,
+        text=True,
+        timeout=180,
+    )
+    decision = json.loads(proc.stdout)
+    assert decision["decision"] == "block"
+    assert "looked for" in decision["reason"]
+
+
+@needs_sdk
+def test_a_prompt_field_of_the_wrong_type_blocks() -> None:
+    proc = subprocess.run(
+        [PYTHON, str(REPO_HOOK)],
+        input=json.dumps({"hook_event_name": "UserPromptSubmit", "prompt": {"a": 1}}),
+        capture_output=True,
+        text=True,
+        timeout=180,
+    )
+    assert json.loads(proc.stdout)["decision"] == "block"
+
+
+@needs_sdk
+def test_a_genuinely_empty_prompt_is_allowed() -> None:
+    """Present and empty is the one case that passes without inspection.
+    Absent is not the same thing, and is tested above."""
+    assert run_hook("", field="prompt") == {}
+    assert run_hook("   \n ", field="prompt") == {}
+
+
+@needs_sdk
+def test_no_raw_value_survives_into_output_whichever_field_carried_it() -> None:
+    for field in ("prompt", "user_input"):
+        decision = run_hook(SENSITIVE_PROMPT, field=field)
+        blob = json.dumps(decision)
+        for value in RAW_VALUES:
+            assert value not in blob, f"{value!r} leaked via {field}"
