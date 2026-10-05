@@ -29,43 +29,43 @@ there would undo the masking.
 plugin at. It needs **Python 3.12 or newer** — the macOS system `python3` is 3.9
 and will refuse.
 
-Neither package is on PyPI yet, so install from the offline bundle you can
-download from the extension page:
-
 ```bash
 python3.12 -m venv ~/.kryptos-pii && source ~/.kryptos-pii/bin/activate
 
-pip install --find-links . kryptos-pii-local mcp   # from the unzipped bundle
-kryptos-pii-model download                         # the checkpoint, ~850 MB
+pip install kryptos-pii-local mcp
+kryptos-pii-model download          # the checkpoint, ~850 MB, once
 ```
 
-For hosted masking instead, install the client wheel and `mcp` — no checkpoint
+That downloads [`sathvik-17/kryptos-pii`](https://huggingface.co/sathvik-17/kryptos-pii)
+from the Hugging Face Hub. No account and no API key are needed for either step.
+
+For hosted masking instead, `pip install kryptos-pii-client mcp` — no checkpoint
 to download.
 
 Note the interpreter you used (`~/.kryptos-pii/bin/python` above). Step 3 asks
 for it, and pointing the plugin at the wrong one is the usual failure.
 
+An air-gapped machine can install the same two wheels from the offline bundle on
+the extension page with `pip install --find-links . kryptos-pii-local mcp`, and
+copy the checkpoint in by hand to a directory named in `KRYPTOS_PII_MODEL_DIR`.
+
 **2. Add the marketplace and install the plugin** in Claude Code:
 
 ```text
-/plugin marketplace add kryptos/kryptos-pii
+/plugin marketplace add Kryptos-Calfus/Kryptos-PII
 /plugin install kryptos-pii@kryptos
 ```
 
-From a local checkout, point at this directory instead:
+From a local checkout, point at the directory instead — the repository root,
+which is where the marketplace manifest lives:
 
 ```text
-/plugin marketplace add ./integrations/claude-plugin
+/plugin marketplace add ./
 /plugin install kryptos-pii@kryptos
 ```
 
-Or from your Kryptos deployment, which serves a marketplace built from the
-published extension:
-
-```bash
-claude plugin marketplace add https://api.kryptos.ai/api/v1/extensions/pii-protection/claude-plugin/marketplace.json
-claude plugin install kryptos-pii@kryptos
-```
+Both work from a terminal too, as `claude plugin marketplace add …` and
+`claude plugin install …`.
 
 **3. Answer the four configuration prompts** Claude Code shows when the plugin
 is enabled:

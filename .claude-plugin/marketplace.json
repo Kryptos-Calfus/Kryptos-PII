@@ -1,0 +1,13 @@
+{
+  "name": "kryptos",
+  "description": "Security extensions for AI applications, from the Kryptos platform.",
+  "owner": { "name": "Kryptos", "url": "https://github.com/Kryptos-Calfus/Kryptos-PII" },
+  "plugins": [
+    {
+      "name": "kryptos-pii",
+      "source": "./integrations/claude-plugin",
+      "description": "Mask personal information before it reaches a prompt, a file, a commit message or another tool.",
+      "category": "security"
+    }
+  ]
+}
