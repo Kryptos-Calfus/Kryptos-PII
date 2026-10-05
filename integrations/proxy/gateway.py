@@ -82,9 +82,18 @@ STRIP_REQUEST_HEADERS = {
     "trailer",
 }
 
+# Note what is NOT here: content-encoding.
+#
+# The body is relayed with aiter_raw(), which yields the bytes exactly as the
+# upstream sent them -- still gzip or brotli compressed. Dropping the header
+# that says so hands the client compressed bytes it believes are plain, and it
+# fails with "JSON Parse error: Unrecognized token". The encoding header must
+# travel with the encoded body.
+#
+# content-length goes because we re-frame as a stream; the hop-by-hop headers
+# below are per RFC 9110 and are not ours to pass on.
 STRIP_RESPONSE_HEADERS = {
     "content-length",
-    "content-encoding",
     "connection",
     "keep-alive",
     "transfer-encoding",
