@@ -195,17 +195,24 @@ failure_policy:
   sensitive_write: block
 
 # Where this extension runs behind the Kryptos gateway, and with which
-# operation. Every source uses `detect`, which applies the installation's
+# operation. Text sources use `detect`, which applies the installation's
 # configured action -- at a checkpoint nobody chooses the operation per call, so
-# the installation's choice is the one that should hold. Everything a model is
-# sent, says, or asks a tool to do is inspected: personal data in a system
-# prompt or in conversation history reaches the provider just the same.
+# the installation's choice is the one that should hold. Personal data in a
+# system prompt or in conversation history reaches the provider just the same,
+# so all of it is inspected.
+#
+# Tool calls use `audit`: findings are recorded, the arguments are left alone.
+# Arguments are an action, not prose -- redacting the recipient of an allowed
+# email_send leaves the agent a call to "[EMAIL]" that cannot work. To stop
+# personal data reaching a tool, block on it with an orchestrator policy rule
+# (`when: {source: tool_call, finding_type: payment_card}`), and let the tool
+# firewall decide which calls happen at all.
 checkpoints:
   agent_prompt: detect
   model_input: detect
   tool_result: detect
   model_output: detect
-  tool_call: detect
+  tool_call: audit
 
 runtime: python
 health_endpoint: /health
