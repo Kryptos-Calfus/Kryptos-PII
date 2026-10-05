@@ -194,6 +194,19 @@ failure_policy:
   read_only: alert
   sensitive_write: block
 
+# Where this extension runs behind the Kryptos gateway, and with which
+# operation. Every source uses `detect`, which applies the installation's
+# configured action -- at a checkpoint nobody chooses the operation per call, so
+# the installation's choice is the one that should hold. Everything a model is
+# sent, says, or asks a tool to do is inspected: personal data in a system
+# prompt or in conversation history reaches the provider just the same.
+checkpoints:
+  agent_prompt: detect
+  model_input: detect
+  tool_result: detect
+  model_output: detect
+  tool_call: detect
+
 runtime: python
 health_endpoint: /health
 timeout_seconds: 10.0
