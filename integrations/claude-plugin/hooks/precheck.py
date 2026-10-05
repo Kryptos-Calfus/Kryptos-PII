@@ -96,7 +96,20 @@ def block(message: str, **diagnostics: Any) -> None:
             file=sys.stderr,
         )
         raise SystemExit(0)
-    _emit({"decision": "block", "reason": message})
+    _emit(
+        {
+            "decision": "block",
+            "reason": message,
+            # Without this Claude Code appends "Original prompt: ..." to the
+            # block notice, putting every value we just removed back on screen
+            # and into the session transcript. Blocking a prompt and then
+            # printing it is not blocking it.
+            "hookSpecificOutput": {
+                "hookEventName": "UserPromptSubmit",
+                "suppressOriginalPrompt": True,
+            },
+        }
+    )
 
 
 # Where the prompt lives in the event, most current first.
