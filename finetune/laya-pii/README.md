@@ -13,7 +13,7 @@ language:
   - en
 ---
 
-# laya-pii
+# kryptos-pii
 
 A fine-tuned LAYA classifier that decides, in context, whether a span of text is
 personal information. It is the detector behind

@@ -17,16 +17,20 @@ Checked available on 2026-10-03, not yet reserved:
 | | |
 | --- | --- |
 | PyPI | `kryptos-pii`, `kryptos-pii-local`, `kryptos-pii-client`, `kryptos` |
-| Hub | `kryptos/laya-pii` (the `kryptos` org does not exist yet) |
+| Hub | `sathvik-17/kryptos-pii` |
 
 Re-checked 2026-10-05: all four PyPI names still return 404, and the Hub org is
 still unregistered. The names are the perishable part. Reserving them costs one
 upload each.
 
-**Create the Hub org before step 1.** `DEFAULT_REPO` in `kryptos_pii/model.py`
-is `kryptos/laya-pii`; push without the org and the weights land under your
-personal namespace while every installed copy of `kryptos-pii-model download`
-keeps asking for an id that does not exist.
+`DEFAULT_REPO` in `kryptos_pii/model.py` is `sathvik-17/kryptos-pii`, so that is the
+id every installed copy of `kryptos-pii-model download` will ask for. Push
+anywhere else and the published packages point at nothing.
+
+That is a personal namespace. It ties a company artifact to one person's
+account: transfers are possible but not free, and the id is baked into every
+wheel already shipped. Moving it to an org is cheap now and expensive after the
+first release.
 
 ## 1. The checkpoint
 
@@ -39,10 +43,10 @@ python scripts/convert_checkpoint.py finetune/laya-pii
 python scripts/compare_checkpoints.py <fp32 copy> finetune/laya-pii
 
 # Check the upload without doing it. Refuses fp32 weights and a missing card.
-python scripts/publish_model.py --repo kryptos/laya-pii
+python scripts/publish_model.py --repo sathvik-17/kryptos-pii
 
 huggingface-cli login
-python scripts/publish_model.py --repo kryptos/laya-pii --push
+python scripts/publish_model.py --repo sathvik-17/kryptos-pii --push
 ```
 
 Then verify as a stranger would, on a machine with no checkpoint and no

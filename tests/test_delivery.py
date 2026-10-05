@@ -55,7 +55,8 @@ def test_without_a_checkout_it_falls_back_to_the_download_cache(
 
     where = model.model_dir()
 
-    assert where == tmp_path / "cache" / "kryptos" / "pii" / "kryptos--laya-pii"
+    slug = model.DEFAULT_REPO.replace("/", "--")
+    assert where == tmp_path / "cache" / "kryptos" / "pii" / slug
     assert not model.is_installed()  # the path is answerable before anything is there
 
 
@@ -76,7 +77,7 @@ def test_download_refuses_a_directory_without_weights(
     sys.modules["huggingface_hub"].snapshot_download = fake_snapshot  # type: ignore[attr-defined]
 
     with pytest.raises(model.DownloadFailed, match="not a usable checkpoint"):
-        model.download("kryptos/laya-pii", target=empty)
+        model.download("example/checkpoint", target=empty)
 
 
 # --- the local SDK --------------------------------------------------------

@@ -1,11 +1,11 @@
 """Upload the checkpoint to the Hugging Face Hub.
 
     huggingface-cli login
-    python scripts/publish_model.py --repo kryptos/laya-pii
+    python scripts/publish_model.py --repo sathvik-17/kryptos-pii
 
 Dry run first; it is the default:
 
-    python scripts/publish_model.py --repo kryptos/laya-pii --dry-run
+    python scripts/publish_model.py --repo sathvik-17/kryptos-pii --dry-run
 
 Two things this refuses to do, because both are hard to undo once pushed:
 
@@ -68,7 +68,7 @@ def check(model_dir: Path) -> None:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="publish_model")
-    parser.add_argument("--repo", required=True, help="Hub repo id, e.g. kryptos/laya-pii")
+    parser.add_argument("--repo", required=True, help="Hub repo id, e.g. sathvik-17/kryptos-pii")
     parser.add_argument("--model-dir", type=Path, default=DEFAULT_DIR)
     parser.add_argument("--revision", help="Branch to push to; defaults to main")
     parser.add_argument("--private", action="store_true", help="Create the repo private")

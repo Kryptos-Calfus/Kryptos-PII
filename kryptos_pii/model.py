@@ -32,7 +32,7 @@ from pathlib import Path
 # The published checkpoint. Overridable so a deployment can pin its own
 # retrained copy without a code change -- the detector's reported F1 belongs to
 # a specific checkpoint, and a team that retrains needs somewhere to put theirs.
-DEFAULT_REPO = os.environ.get("KRYPTOS_PII_MODEL_REPO", "kryptos/laya-pii")
+DEFAULT_REPO = os.environ.get("KRYPTOS_PII_MODEL_REPO", "sathvik-17/kryptos-pii")
 DEFAULT_REVISION = os.environ.get("KRYPTOS_PII_MODEL_REVISION") or None
 
 # The file whose presence means "this directory holds a usable checkpoint".
