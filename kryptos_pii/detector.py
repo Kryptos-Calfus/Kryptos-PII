@@ -221,8 +221,11 @@ def _labelled_spans(text: str) -> list[Detection]:
     for label, rx in _FIELD_RES:
         for match in rx.finditer(text):
             start, end = match.span("value")
-            # Sentence punctuation is not part of the value.
-            while end > start and text[end - 1] in ".:!?'\"":
+            # Sentence punctuation and closing delimiters are not part of the
+            # value. Brackets matter as much as full stops: behind the gateway
+            # this text is often JSON tool arguments, and a span that swallows
+            # the closing `"}` turns a valid call into an invalid one.
+            while end > start and text[end - 1] in ".:!?'\")]}>":
                 end -= 1
             value = text[start:end]
             # Without a separator the label may just be prose ("account is

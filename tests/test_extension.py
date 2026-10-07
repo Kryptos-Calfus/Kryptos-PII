@@ -102,6 +102,23 @@ def test_a_value_span_stops_at_the_value() -> None:
     assert [f.category for f in result.findings] == ["financial", "network_address"]
 
 
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ('{"note": "phone 9812345678"}', '{"note": "phone [PHONE]"}'),
+        ("(phone 9812345678)", "(phone [PHONE])"),
+        ("[phone: 9812345678]", "[phone: [PHONE]]"),
+        ("<phone 9812345678>", "<phone [PHONE]>"),
+    ],
+)
+def test_a_value_span_leaves_closing_delimiters_alone(text: str, expected: str) -> None:
+    """Behind the gateway this text is often tool-call arguments. A span that
+    takes the closing quote and brace with it turns valid JSON into invalid
+    JSON, and the call has to be refused."""
+    result = run(text, operation="redact", config=REGEX).result
+    assert result.transformed_content == expected
+
+
 # --- actions --------------------------------------------------------------
 
 
