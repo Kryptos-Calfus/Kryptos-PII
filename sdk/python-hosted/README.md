@@ -11,7 +11,7 @@ host — one dependency and an API key.
 **Python 3.10 or newer.**
 
 ```bash
-pip install ./kryptos_pii_client-0.3.0-py3-none-any.whl
+pip install ./kryptos_pii_client-0.4.0-py3-none-any.whl
 export KRYPTOS_API_KEY=kr_live_xxxxxxxx
 ```
 

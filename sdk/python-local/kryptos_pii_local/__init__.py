@@ -31,7 +31,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"
 
 OPERATIONS = ("detect", "redact", "mask", "tokenize", "block", "audit")
 

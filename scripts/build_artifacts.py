@@ -151,7 +151,7 @@ def build_plugin_zip(destination: Path) -> Path:
     if destination.exists():
         destination.unlink()
 
-    root = destination.stem  # kryptos-pii-claude-plugin-0.3.0
+    root = destination.stem  # kryptos-pii-claude-plugin-0.4.0
     with zipfile.ZipFile(destination, "w", zipfile.ZIP_DEFLATED) as archive:
         for path in sorted(PLUGIN_DIR.rglob("*")):
             if any(part in PLUGIN_EXCLUDE for part in path.parts):

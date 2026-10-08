@@ -144,15 +144,21 @@ def category_of(pii_type: str) -> str:
     return CATEGORY_OF.get(pii_type, pii_type)
 
 
-def reason_codes_for(pii_type: str) -> list[str]:
+def reason_codes_for(pii_type: str, category: str | None = None) -> list[str]:
     """The reason codes one finding contributes: the specific type, and the
     category when it differs.
 
     Both are emitted so a policy can match ``PII_AADHAAR`` for precision or
     ``PII_GOVERNMENT_ID`` for breadth, and an existing policy written against
     the broad code keeps firing.
+
+    ``category`` is for findings whose category this module cannot know: a
+    customer's own pattern, declared as belonging to one of the categories
+    above. A custom type named ``claim_number`` and declared ``government_id``
+    emits ``PII_CLAIM_NUMBER`` and ``PII_GOVERNMENT_ID``, so an existing policy
+    rule written against the category covers it from the moment it is added.
     """
-    category = category_of(pii_type)
+    category = category or category_of(pii_type)
     codes = [f"PII_{pii_type.upper()}"]
     if category != pii_type:
         codes.append(f"PII_{category.upper()}")

@@ -1,7 +1,7 @@
 {
   "name": "kryptos-pii",
   "displayName": "Kryptos PII Protection",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Blocks prompts carrying personal information before the model receives them, and gives Claude tools to mask PII in everything else.",
   "author": { "name": "Kryptos", "url": "https://kryptos.ai" },
   "homepage": "https://kryptos.ai/extensions/pii-protection",

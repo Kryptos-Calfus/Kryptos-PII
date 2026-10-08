@@ -20,11 +20,12 @@ from dataclasses import dataclass
 from typing import Any
 
 from kryptos_pii.contract import Decision, ExtensionResult, Finding, Risk
+from kryptos_pii.custom import compile_patterns, normalise_patterns
 from kryptos_pii.detector import DEFAULT_THRESHOLD, Detection, detect
 from kryptos_pii.taxonomy import category_of, is_high_risk, reason_codes_for
 
 EXTENSION_NAME = "pii-protection"
-EXTENSION_VERSION = "0.3.0"
+EXTENSION_VERSION = "0.4.0"
 
 OPERATIONS = ("detect", "redact", "mask", "tokenize", "block", "audit")
 
@@ -44,6 +45,9 @@ DEFAULT_CONFIG: dict[str, Any] = {
     "action": "redact",
     "threshold": DEFAULT_THRESHOLD,
     "min_confidence": 0.0,
+    # The installation's own expressions. Empty is the honest default: a
+    # detector that invented identifiers nobody declared would be guessing.
+    "custom_patterns": [],
 }
 
 
@@ -73,13 +77,25 @@ def _token_for(value: str, label: str) -> str:
     return f"<{label.upper()}_{digest}>"
 
 
+def _category_of(detection: Detection) -> str:
+    """The category a finding belongs to.
+
+    A custom pattern carries its own, because the customer declared it and the
+    taxonomy has never heard of the type. Everything else asks the taxonomy,
+    which returns the type unchanged rather than inventing a bucket for it.
+    """
+    return detection.category or category_of(detection.type)
+
+
 def _risk_of(detections: list[Detection]) -> Risk:
     if not detections:
         return Risk.NONE
     # Risk is assessed on the category, so a specific type inherits it: an
     # 'aadhaar' finding is high risk because 'government_id' is, exactly as it
-    # was when the detector only ever said 'government_id'.
-    if any(is_high_risk(d.type) for d in detections):
+    # was when the detector only ever said 'government_id'. A custom pattern
+    # declared as 'government_id' is high risk for the same reason -- the
+    # category is the whole point of asking the customer for one.
+    if any(is_high_risk(_category_of(d)) for d in detections):
         return Risk.HIGH
     return Risk.MEDIUM if len(detections) > 1 else Risk.LOW
 
@@ -120,6 +136,12 @@ def resolve_config(config: dict[str, Any] | None) -> dict[str, Any]:
         raise ValueError("threshold must be between 0 and 1")
     merged["threshold"] = threshold
     merged["min_confidence"] = float(merged["min_confidence"])
+    merged["custom_patterns"] = normalise_patterns(merged.get("custom_patterns"))
+    # Compile them now and throw the result away. The compilation cache means
+    # the work is not repeated when the request runs, and doing it here is what
+    # makes a bad pattern a configuration error carrying its index and its
+    # reason, rather than a surprise on the first request whose text reaches it.
+    compile_patterns(merged["custom_patterns"])
     return merged
 
 
@@ -141,12 +163,14 @@ def run(
     if operation not in OPERATIONS:
         raise ValueError(f"'{operation}' is not an operation this extension declares")
 
+    patterns = compile_patterns(settings["custom_patterns"])
     detections = [
         d
         for d in detect(
             text,
             detector_mode=settings["detector_mode"],
             threshold=settings["threshold"],
+            custom_patterns=patterns,
         )
         if d.confidence >= settings["min_confidence"]
     ]
@@ -176,7 +200,7 @@ def run(
     findings = [
         Finding(
             type=d.type,
-            category=category_of(d.type),
+            category=_category_of(d),
             start=d.start,
             end=d.end,
             action=decision,
@@ -188,7 +212,9 @@ def run(
     # Both the specific code and its category, so a policy can match
     # PII_AADHAAR for precision or PII_GOVERNMENT_ID for breadth, and a policy
     # written before this change keeps firing.
-    reason_codes = sorted({code for d in detections for code in reason_codes_for(d.type)})
+    reason_codes = sorted(
+        {code for d in detections for code in reason_codes_for(d.type, _category_of(d))}
+    )
     if detections and operation == "block":
         reason_codes.append("PII_PRESENT_BLOCKED")
 
@@ -206,6 +232,11 @@ def run(
             "threshold": settings["threshold"],
             "applied_action": action,
             "finding_count": len(detections),
+            # Named, not just counted: a customer reading an execution in the
+            # dashboard needs to know which of their own patterns fired, and
+            # the pattern names are theirs rather than matched content.
+            "custom_patterns": len(patterns),
+            "custom_matches": sorted({d.type for d in detections if d.detector == "custom-regex"}),
         },
     )
     return Outcome(result=result, vault=vault)

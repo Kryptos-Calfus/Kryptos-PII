@@ -23,7 +23,7 @@ import os
 from dataclasses import dataclass, field
 from typing import Any
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"
 
 DEFAULT_BASE_URL = os.environ.get("KRYPTOS_BASE_URL", "https://api.kryptos.ai")
 EXTENSION = "pii-protection"

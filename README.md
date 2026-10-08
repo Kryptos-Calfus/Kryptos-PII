@@ -69,6 +69,35 @@ you, and how to choose. Read it before wiring one in — `redact`, `mask` and
 `tokenize` all mean "take the PII out", and which you want depends on
 differences the names do not carry.
 
+## Your own identifiers
+
+A general detector cannot know that `KR-10482093` is your claim number. Declare
+it and it is found like anything else:
+
+```python
+redact(
+    "Claim KR-10482093 was filed by Badge #AB-1234.",
+    custom_patterns=[
+        {"name": "claim_number", "pattern": r"KR-[0-9]{8}", "category": "government_id"},
+        {"name": "employee_badge", "pattern": r"badge\s*#?\s*(?P<value>[A-Z]{2}-\d{4})",
+         "ignore_case": True},
+    ],
+).text
+# 'Claim [CLAIM_NUMBER] was filed by Badge #[EMPLOYEE_BADGE].'
+```
+
+The same list is a field on the installation in the Kryptos console, where it is
+a form rather than JSON. The `category` is worth setting: it decides the risk
+level and the broad reason code, so a policy rule written against
+`government_id` covers a new pattern the moment you add it.
+
+Patterns are checked when they are saved and run under a time budget, because a
+configuration field that accepts a regular expression accepts a way to hang the
+service. Nested quantifiers, empty-string matches and anything over the limits
+are refused with the reason; a pattern that backtracks past its budget at run
+time returns a `422` naming it rather than stalling.
+[docs/api.md](https://github.com/Kryptos-Calfus/Kryptos-PII/blob/main/docs/api.md#custom-patterns) has the field reference.
+
 ## The checkpoint
 
 Local execution needs the fine-tuned checkpoint, which is ~850 MB and therefore
@@ -91,6 +120,7 @@ kryptos_pii/            the installable package: everything inference needs
   candidates.py         how text is split into candidate spans
   detector.py           regex candidates + the fine-tuned classifier
   classify.py           what category a detected span is
+  custom.py             the customer's own patterns, compiled and time-boxed
   engine.py             findings -> a deterministic decision
   service.py            POST /v1/execute, GET /health
   contract.py           the contract, copied not imported, and version-checked
@@ -106,7 +136,7 @@ scripts/
   publish_model.py      uploads the checkpoint to the Hugging Face Hub
 RELEASING.md            how the packages and the checkpoint get published
 docs/operations.md      what each of the six operations does
-tests/                  27 tests, no checkpoint needed
+tests/                  no checkpoint needed, and they run in seconds
 finetune/               the dataset, training, evaluation and the checkpoint
                         (common.py is now an alias for kryptos_pii.candidates,
                         so training scripts import it exactly as before)

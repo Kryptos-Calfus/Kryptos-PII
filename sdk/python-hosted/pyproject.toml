@@ -1,6 +1,6 @@
 [project]
 name = "kryptos-pii-client"
-version = "0.3.0"
+version = "0.4.0"
 description = "Hosted client for the Kryptos PII Protection extension. Sends text to Kryptos; no model, no checkpoint."
 requires-python = ">=3.10"
 readme = "README.md"

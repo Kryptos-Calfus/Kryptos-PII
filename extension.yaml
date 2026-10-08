@@ -9,7 +9,7 @@ description: >-
   Finds personal information in text and removes it before it reaches a model,
   a tool or a log. Regex proposes candidate spans and a fine-tuned LAYA
   classifier decides, in context, which of them are personal. No LLM is called.
-version: 0.3.0
+version: 0.4.0
 category: data-protection
 status: beta
 publisher: kryptos
@@ -44,6 +44,16 @@ integrations:
 hosted_supported: true
 local_supported: true
 hybrid_supported: false
+
+# Hosted execution is authenticated with a Kryptos API key and nothing else. A
+# dashboard session token will be refused by the execution router, not merely
+# discouraged here: a session token lives in a browser, carries every permission
+# the account has, and cannot be scoped to `pii:redact` or revoked without
+# logging the person out. A key can be, which is what makes per-call metering,
+# per-extension scopes and instant revocation mean anything.
+#
+# Local execution is unaffected. It needs no key because it contacts nothing.
+requires_api_key: true
 
 # What each operation actually does. Detection is identical in all six -- the
 # same candidates, the same classifier, the same findings. The operation only
@@ -140,12 +150,76 @@ configuration_schema:
     minimum: 0
     maximum: 1
     description: Drop findings below this confidence before any action is taken.
+  custom_patterns:
+    type: array
+    max_items: 24
+    description: >-
+      Your own identifiers, as regular expressions. Every deployment has values
+      this detector cannot know about -- a claim number, an employee badge, an
+      internal customer reference -- and these are how you add them without
+      forking the extension or waiting for a release. They run as a
+      deterministic stage beside the built-in shapes, in every detector_mode,
+      and they are never sent to the classifier. Where a custom pattern and a
+      built-in detector claim the same text, yours wins. Each pattern is
+      compiled and checked when you save it and runs under a time budget, so a
+      pattern that backtracks catastrophically is a 422 naming the pattern
+      rather than a stalled request.
+    items:
+      type: object
+      required: [name, pattern]
+      properties:
+        name:
+          type: string
+          pattern: "^[a-z][a-z0-9_]{1,39}$"
+          description: >-
+            Becomes the finding type and the PII_<NAME> reason code, so policy
+            can match it. Must not be one of the extension's built-in types.
+        pattern:
+          type: string
+          max_length: 400
+          description: >-
+            A Python regular expression. Name a group `value` to report only
+            part of what you matched: `(?i)badge\s*#?\s*(?P<value>[A-Z]{2}-\d{4})`
+            keeps the label readable and redacts only the identifier.
+        category:
+          type: string
+          enum:
+            - person_name
+            - email
+            - phone
+            - address
+            - date_of_birth
+            - government_id
+            - financial
+            - payment_card
+            - secret
+            - network_address
+            - personal_data
+          description: >-
+            Which broad category this identifier belongs to. It decides the risk
+            level and the second reason code, so an existing policy rule written
+            against `government_id` covers your pattern the moment you add it.
+            Defaults to personal_data, which is the honest answer when it is
+            none of the others.
+        ignore_case:
+          type: boolean
+          description: Match without regard to case. Default false.
+        confidence:
+          type: number
+          minimum: 0
+          maximum: 1
+          description: >-
+            Reported on every finding this pattern produces, and compared
+            against min_confidence. Default 1.0, because a pattern you wrote is
+            a statement rather than a guess; lower it for a loose pattern you
+            want filtered out by a stricter installation.
 
 default_config:
   detector_mode: hybrid
   action: redact
   threshold: 0.5
   min_confidence: 0.0
+  custom_patterns: []
 
 input_schema:
   content:
@@ -180,7 +254,9 @@ policy_schema:
       (PII_GOVERNMENT_ID). A type that is its own category emits one code.
       PII_PRESENT_BLOCKED is added when the block operation stopped a request.
       Policies match on these, and a policy written against a broad code keeps
-      firing after the extension started reporting narrower types.
+      firing after the extension started reporting narrower types. A custom
+      pattern emits the same pair from the name and the category you gave it:
+      PII_CLAIM_NUMBER and PII_GOVERNMENT_ID.
   finding_type:
     type: array
     description: >-
@@ -296,7 +372,7 @@ delivery:
       goes to Kryptos.
     install:
       - label: Download the wheel above, then install it
-        command: pip install ./kryptos_pii_client-0.3.0-py3-none-any.whl
+        command: pip install ./kryptos_pii_client-0.4.0-py3-none-any.whl
         note: >-
           Needs Python 3.10 or newer. Not yet on PyPI, so install the file --
           once it is published this becomes 'pip install kryptos-pii-client'.
@@ -315,9 +391,9 @@ delivery:
         r.reason_codes  # ['PII_EMAIL', 'PII_PERSON_NAME', 'PII_PHONE']
     artifact:
       id: python-sdk-hosted
-      filename: kryptos_pii_client-0.3.0-py3-none-any.whl
+      filename: kryptos_pii_client-0.4.0-py3-none-any.whl
       kind: wheel
-      source: sdk/python-hosted/dist/kryptos_pii_client-0.3.0-py3-none-any.whl
+      source: sdk/python-hosted/dist/kryptos_pii_client-0.4.0-py3-none-any.whl
     docs: sdk/python-hosted/README.md
 
   - id: python_sdk_local
@@ -362,9 +438,9 @@ delivery:
       # Both Kryptos wheels in one zip: the SDK cannot install on its own until
       # the extension package it wraps is on an index.
       id: python-sdk-local
-      filename: kryptos-pii-local-0.3.0-offline.zip
+      filename: kryptos-pii-local-0.4.0-offline.zip
       kind: zip
-      source: dist/kryptos-pii-local-0.3.0-offline.zip
+      source: dist/kryptos-pii-local-0.4.0-offline.zip
     docs: sdk/python-local/README.md
 
   - id: claude_plugin
@@ -410,9 +486,9 @@ delivery:
         Claude redacts the customer data before it writes the issue.
     artifact:
       id: claude-plugin
-      filename: kryptos-pii-claude-plugin-0.3.0.zip
+      filename: kryptos-pii-claude-plugin-0.4.0.zip
       kind: zip
-      source: dist/kryptos-pii-claude-plugin-0.3.0.zip
+      source: dist/kryptos-pii-claude-plugin-0.4.0.zip
     docs: integrations/claude-plugin/README.md
     metadata:
       # What a Claude marketplace entry has to call this plugin. The extension
@@ -430,6 +506,22 @@ documentation:
   claude_plugin: integrations/claude-plugin/README.md
 
 changelog:
+  - version: 0.4.0
+    date: "2026-10-07"
+    notes: >-
+      Customer-supplied detection patterns. An installation can declare up to 24
+      regular expressions of its own in `custom_patterns`; each one runs as a
+      deterministic stage beside the built-in shapes, in every detector_mode,
+      and is never sent to the classifier. A custom finding carries the type you
+      named and the category you chose, so it inherits that category's risk
+      level and emits both reason codes -- an existing policy rule written
+      against `government_id` covers a new claim-number pattern without being
+      touched. Patterns are compiled when the configuration is saved, rejected
+      if they nest quantifiers or match the empty string, and run under a
+      per-pattern and a whole-stage time budget, because a configuration field
+      that accepts a regular expression accepts a way to hang the service.
+      Hosted execution now declares `requires_api_key`, which the orchestrator
+      enforces: a dashboard session token can no longer run this extension.
   - version: 0.3.0
     date: "2026-10-03"
     notes: >-

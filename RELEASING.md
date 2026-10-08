@@ -92,9 +92,9 @@ Then the real index, in this order — uploading `kryptos-pii-local` before
 `kryptos-pii` publishes a package that cannot resolve:
 
 ```bash
-python -m twine upload dist/pypi/kryptos_pii-0.3.0*
-python -m twine upload dist/pypi/kryptos_pii_client-0.3.0*
-python -m twine upload dist/pypi/kryptos_pii_local-0.3.0*
+python -m twine upload dist/pypi/kryptos_pii-0.4.0*
+python -m twine upload dist/pypi/kryptos_pii_client-0.4.0*
+python -m twine upload dist/pypi/kryptos_pii_local-0.4.0*
 ```
 
 Authenticate with an API token, not a password: `__token__` as the username and

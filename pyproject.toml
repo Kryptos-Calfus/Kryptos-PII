@@ -1,6 +1,6 @@
 [project]
 name = "kryptos-pii"
-version = "0.3.0"
+version = "0.4.0"
 description = "Kryptos PII Protection: a platform extension. Regex proposes, a fine-tuned LAYA classifier decides."
 readme = "README.md"
 requires-python = ">=3.12"
@@ -29,6 +29,13 @@ dependencies = [
     # trained and measured against, so that is the floor; 0.4 may move the
     # inference API, so that is the ceiling.
     "laya[serve]>=0.3.9,<0.4",  # the "serve" extra pulls in fastapi + uvicorn
+    # Customer-supplied patterns need an engine that can be told to stop. A
+    # regular expression is a program, and configuration that accepts a program
+    # accepts a way to hang the service; `regex` takes a timeout per match and
+    # the standard library's `re` does not, which is the whole reason it is
+    # here. Declared rather than relied on through transformers, so the
+    # guarantee survives a dependency that drops it.
+    "regex>=2023.12.25",
 ]
 
 [project.urls]

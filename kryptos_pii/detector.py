@@ -29,6 +29,8 @@ from pathlib import Path
 
 from kryptos_pii.candidates import QUESTION, pieces, set_context_chars, state_for
 from kryptos_pii.classify import classify, luhn_valid
+from kryptos_pii.custom import CustomPattern
+from kryptos_pii.custom import find as find_custom
 from kryptos_pii.model import model_dir
 from kryptos_pii.taxonomy import HIGH_RISK_CATEGORIES, category_of
 
@@ -128,6 +130,11 @@ class Detection:
     type: str
     confidence: float
     detector: str
+    # The broad category this type belongs to, when the stage that produced it
+    # already knows. Only the custom-pattern stage does: a customer names the
+    # category their own identifier belongs in, and nothing else may guess it.
+    # None means "ask the taxonomy", which is what every built-in type does.
+    category: str | None = None
 
 
 class ModelUnavailable(RuntimeError):
@@ -245,6 +252,21 @@ def _labelled_spans(text: str) -> list[Detection]:
     return out
 
 
+def _custom_spans(text: str, patterns: tuple[CustomPattern, ...]) -> list[Detection]:
+    """The installation's own expressions. Deterministic, no model call."""
+    return [
+        Detection(
+            start=match.start,
+            end=match.end,
+            type=match.type,
+            confidence=match.confidence,
+            detector="custom-regex",
+            category=match.category,
+        )
+        for match in find_custom(text, patterns)
+    ]
+
+
 def _certain_spans(text: str) -> list[Detection]:
     out: list[Detection] = []
     for label, rx in _CERTAIN:
@@ -270,6 +292,7 @@ def detect(
     threshold: float = DEFAULT_THRESHOLD,
     model_dir: Path | str = DEFAULT_MODEL_DIR,
     context_chars: int = DEFAULT_CONTEXT_CHARS,
+    custom_patterns: tuple[CustomPattern, ...] = (),
 ) -> list[Detection]:
     """Spans of ``text`` that are personal information, left to right.
 
@@ -277,11 +300,17 @@ def detect(
     model and keeps only the shapes that are self-evident -- far lower recall,
     offered for CPU-only deployments that cannot host the checkpoint, and named
     in the result's metadata so nobody mistakes it for the full detector.
+
+    ``custom_patterns`` are the installation's own expressions. They run in both
+    modes, because they are shapes rather than guesses, and they run first: a
+    customer who declared that ``KR-[0-9]{8}`` is a claim number has said something
+    the detector cannot work out for itself, and the overlap rule below keeps
+    that answer over a built-in one covering the same span.
     """
     if not text:
         return []
 
-    found = _certain_spans(text) + _labelled_spans(text)
+    found = _custom_spans(text, custom_patterns) + _certain_spans(text) + _labelled_spans(text)
 
     if detector_mode != "regex":
         candidates = [
@@ -303,8 +332,14 @@ def detect(
                     )
                 )
 
-    # Overlaps would corrupt the rewrite, which walks the spans in order.
-    ordered = sorted(found, key=lambda d: (d.start, -(d.end - d.start)))
+    # Overlaps would corrupt the rewrite, which walks the spans in order, so at
+    # most one span may start at any offset. Where two stages claim the same
+    # offset the custom pattern wins, whatever its length: the customer told the
+    # platform what that text is, and a built-in guess does not get to overrule
+    # it. Otherwise the longer span wins, as it always has.
+    ordered = sorted(
+        found, key=lambda d: (d.start, 0 if d.detector == "custom-regex" else 1, -(d.end - d.start))
+    )
     kept: list[Detection] = []
     for detection in ordered:
         if kept and detection.start < kept[-1].end:

@@ -1,6 +1,6 @@
 [project]
 name = "kryptos-pii-local"
-version = "0.3.0"
+version = "0.4.0"
 description = "Run Kryptos PII Protection on your own machine. The text never leaves it."
 requires-python = ">=3.12"
 readme = "README.md"
@@ -22,7 +22,7 @@ classifiers = [
 # The extension itself, which carries the detector and the laya runtime. The
 # checkpoint is not a dependency: it is ~850 MB and is fetched separately with
 # 'kryptos-pii-model download', so installing this package stays quick.
-dependencies = ["kryptos-pii>=0.3.0"]
+dependencies = ["kryptos-pii>=0.4.0"]
 
 [project.optional-dependencies]
 # Pulls the checkpoint downloader. Separated so an air-gapped install that
