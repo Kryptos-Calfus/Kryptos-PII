@@ -314,6 +314,31 @@ privacy:
     Token-to-value mappings are returned to the caller and are not retained by
     the hosted service. In local mode they never leave your environment.
 
+# What one replica of this extension's hosted runtime is given. The
+# orchestrator prices a request against this and its own rate card, so cost
+# attribution works for this extension without any billing code in it. It is a
+# statement about infrastructure, never about the algorithm: the platform
+# learns how big the box is and nothing about what runs inside it.
+#
+# An operator whose deployment differs overrides these per extension in the
+# rate card; what is declared here is what the extension needs to run well.
+resources:
+  # A fine-tuned classifier held in memory. The checkpoint is ~850 MB in bf16
+  # and is loaded once per process, which sets the floor on both memory and
+  # how many replicas are worth running.
+  vcpu: 2.0
+  memory_gib: 4.0
+  storage_gib: 2.0
+  replicas: 2
+  concurrency: 4
+  pricing_mode: shared
+  always_on: true
+  notes: >-
+    Memory is dominated by the checkpoint and by the span batch
+    (KRYPTOS_PII_MAX_BATCH_SPANS), not by document length. Processor time
+    tracks candidate spans, so a long document costs more than a short one and
+    the per-execution figures will show it.
+
 performance:
   detector: regex candidate proposal plus one classifier pass per candidate
   typical_latency_ms: 120
