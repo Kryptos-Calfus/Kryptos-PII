@@ -746,10 +746,11 @@ wheels = [
 
 [[package]]
 name = "kryptos-pii"
-version = "0.3.0"
+version = "0.4.0"
 source = { editable = "." }
 dependencies = [
     { name = "laya", extra = ["serve"] },
+    { name = "regex" },
 ]
 
 [package.optional-dependencies]
@@ -779,6 +780,7 @@ requires-dist = [
     { name = "laya", extras = ["serve"], specifier = ">=0.3.9,<0.4" },
     { name = "mcp", marker = "extra == 'mcp'", specifier = ">=1.2" },
     { name = "pyyaml", marker = "extra == 'serve'" },
+    { name = "regex", specifier = ">=2023.12.25" },
     { name = "uvicorn", extras = ["standard"], marker = "extra == 'serve'" },
 ]
 provides-extras = ["serve", "mcp", "download"]
