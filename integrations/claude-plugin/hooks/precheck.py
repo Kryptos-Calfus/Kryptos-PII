@@ -28,9 +28,19 @@ event, an unexpected exception: all of them stop the prompt. A PII filter that
 fails open is worse than no filter, because the user believes they are covered
 and nobody finds out otherwise.
 
-Nothing leaves this machine. The hook imports ``kryptos_pii_local`` and never
-``kryptos_pii_client``; there is no code path here that can reach the hosted
-API, by construction rather than by configuration.
+No prompt leaves this machine. The hook imports ``kryptos_pii_local`` and never
+``kryptos_pii_client``; there is no code path here that sends text to the
+hosted API, by construction rather than by configuration.
+
+What it can send, when ``KRYPTOS_API_KEY`` is set, is the *decision*: a verdict,
+the kinds of thing found, how many, and how long it took. That is the local
+runtime reporting to the control plane (CLAUDE.md section 23), the same call the
+local SDKs make, and it is what puts your Claude Code prompts on the Kryptos
+console. The prompt, the matched values and a hash of either are not in it --
+a hash of a short prompt is a guessable prompt.
+
+Reporting is best effort and comes after the decision. The console being
+unreachable must never decide whether a prompt is safe.
 """
 
 from __future__ import annotations
@@ -51,6 +61,68 @@ DIAGNOSTIC_LOG = os.environ.get("KRYPTOS_PII_HOOK_LOG")
 # off unless explicitly set, and it says so in the block message so nobody runs
 # in it by accident for a month.
 ENFORCE = os.environ.get("KRYPTOS_PII_HOOK_ENFORCE", "true").strip().lower() != "false"
+
+# Where to report decisions, if anywhere. Both must be set: a key with no URL
+# has nowhere to go, and a URL with no key would be refused.
+CONSOLE_URL = os.environ.get("KRYPTOS_BASE_URL", "").strip().rstrip("/")
+CONSOLE_KEY = os.environ.get("KRYPTOS_API_KEY", "").strip()
+# A person sitting at Claude Code, as the console will label it.
+AGENT_ID = os.environ.get("KRYPTOS_AGENT_ID", "claude-code").strip() or "claude-code"
+
+# The session Claude Code is in, filled from the hook event when it carries one,
+# so a whole conversation groups into one session in the console.
+SESSION_ID: str | None = None
+
+
+def _report(decision: str, *, would: str | None = None, **facts: Any) -> None:
+    """Record on the console that a prompt was checked here.
+
+    Metadata only, and never on the critical path: every failure is swallowed,
+    because a control plane that cannot be reached is not a reason to hold up
+    somebody's prompt. The detection already happened, locally, either way.
+    """
+    if not (CONSOLE_URL and CONSOLE_KEY):
+        return
+    try:
+        import urllib.error
+        import urllib.request
+
+        types = list(facts.get("types") or [])
+        codes = [f"PII_{kind.upper()}" for kind in types]
+        if facts.get("error"):
+            # A filter that failed is the most important thing this can report.
+            codes = [f"HOOK_{str(facts['error']).upper()}"]
+        body = json.dumps(
+            {
+                "extension": "pii-protection",
+                "operation": "redact",
+                "decision": decision,
+                "would_decision": would or decision,
+                "risk": facts.get("risk") or ("high" if types else "none"),
+                "reason_codes": codes,
+                "finding_types": types,
+                "finding_count": int(facts.get("found") or 0),
+                # Deliberately no content_hash: a prompt is short enough that a
+                # hash of one is a prompt anybody can recover by guessing.
+                "content_bytes": int(facts.get("bytes") or 0),
+                "latency_ms": float(facts.get("latency_ms") or 0.0),
+                "agent_id": AGENT_ID,
+                "session_id": SESSION_ID,
+            }
+        ).encode("utf-8")
+        request = urllib.request.Request(  # noqa: S310 - the URL is the operator's own
+            f"{CONSOLE_URL}/api/v1/executions/report",
+            data=body,
+            method="POST",
+            headers={
+                "Authorization": f"Bearer {CONSOLE_KEY}",
+                "Content-Type": "application/json",
+            },
+        )
+        with urllib.request.urlopen(request, timeout=3) as response:  # noqa: S310
+            response.read()
+    except Exception as exc:  # noqa: BLE001 - reporting must never break the hook
+        _log({"report_failed": f"{type(exc).__name__}: {exc}"})
 
 
 def _log(payload: dict[str, Any]) -> None:
@@ -82,6 +154,7 @@ def allow(reason: str, **diagnostics: Any) -> None:
     narrates itself into every turn is one people switch off.
     """
     _log({"decision": "allow", "reason": reason, **diagnostics})
+    _report("allow", **diagnostics)
     raise SystemExit(0)
 
 
@@ -90,12 +163,16 @@ def block(message: str, **diagnostics: Any) -> None:
     _log({"decision": "block", **diagnostics})
     if not ENFORCE:
         _log({"decision": "would_block", "note": "monitor mode", **diagnostics})
+        # Monitor mode, reported exactly as the platform models it elsewhere:
+        # what happened, and what would have happened under enforcement.
+        _report("allow", would="block", **diagnostics)
         print(
             "kryptos-pii: would have blocked this prompt, but "
             "KRYPTOS_PII_HOOK_ENFORCE=false is set.",
             file=sys.stderr,
         )
         raise SystemExit(0)
+    _report("block", **diagnostics)
     _emit(
         {
             "decision": "block",
@@ -202,15 +279,23 @@ def main() -> int:
             error="unparseable_event",
         )
 
+    # Claude Code names the conversation; carrying it through means a whole
+    # session groups into one row in the console rather than scattering.
+    global SESSION_ID
+    identifier = event.get("session_id")
+    SESSION_ID = identifier if isinstance(identifier, str) and identifier else None
+
     prompt = prompt_from(event)
+    size = len(prompt.encode("utf-8"))
 
     if not prompt.strip():
         # The field was there and held nothing. An empty prompt cannot carry
         # PII, and this is the only case that is allowed without inspection.
-        allow("empty prompt", found=0)
+        allow("empty prompt", found=0, bytes=size)
 
     sdk = _sdk()
 
+    started = time.perf_counter()
     try:
         result = sdk.redact(prompt)
     except sdk.ModelMissing as exc:
@@ -238,8 +323,10 @@ def main() -> int:
             interpreter=sys.executable,
         )
 
+    took_ms = round((time.perf_counter() - started) * 1000, 2)
+
     if not result.findings:
-        allow("no findings", found=0)
+        allow("no findings", found=0, bytes=size, latency_ms=took_ms)
 
     # ``text`` is the transformed content and is None when nothing changed --
     # but we only get here when something was found, so it is set. The fallback
@@ -268,6 +355,9 @@ def main() -> int:
         found=len(result.findings),
         types=types,
         sanitized=sanitized,
+        risk=str(result.risk),
+        bytes=size,
+        latency_ms=took_ms,
     )
     return 0
 
